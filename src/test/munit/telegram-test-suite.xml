@@ -1,0 +1,618 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<munit:config name="telegram-test-suite.xml" />
+	<munit:test name="TelegramDateValidationTest-valid-nonReverse" doc:id="0929fbc2-a683-423f-88be-62bffc3d682c" description="Test">
+		<munit:execution >
+			<ee:transform doc:name="start:2020-04-05, end:2020-04-07" doc:id="130d2a13-0b12-4c8d-a3bb-0d9c027b9e82" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"2020-04-05",
+		"2020-04-07"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="DateValidation flow" doc:id="795c6936-bd74-4e06-add6-368caa598ab3" name="TelegramDateValidation"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.startDate == 2020-04-05" doc:id="1eb14aea-0015-4473-a556-583659bc5de8" actual="#[vars.startDate]" expected='#["2020-04-05"]'/>
+			<munit-tools:assert-equals doc:name="vars.endDate == 2020-04-07" doc:id="60bcb629-7da2-4042-be2a-9e9cea3df303" actual="#[vars.endDate]" expected='#["2020-04-07"]'/>
+			<munit-tools:assert-equals doc:name="vars.isReverse == false" doc:id="ffb45c57-6fac-4e4c-880e-3a4265c1d4af" actual="#[vars.isReverse]" expected="#[false]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDateValidationTest-valid-Reverse" doc:id="6fc5f9a6-5371-4f0a-b86b-3ccee88dee78" description="Test" >
+		<munit:execution >
+			<ee:transform doc:name="start:2020-04-07, end:2020-04-05" doc:id="f820022a-a5ec-4d16-8f4a-552a58b948bb" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"2020-04-07",
+		"2020-04-05"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="DateValidation flow" doc:id="362f0e6a-bebe-4d8c-8fae-cdbe719eadfb" name="TelegramDateValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.startDate == 2020-04-05" doc:id="cd23fda2-7d8e-4d35-ab5d-6dafe431d74a" actual="#[vars.startDate]" expected='#["2020-04-05"]' />
+			<munit-tools:assert-equals doc:name="vars.endDate == 2020-04-07" doc:id="ce2b5b5b-d3e7-4041-b3e0-1438a2894b5e" actual="#[vars.endDate]" expected='#["2020-04-07"]' />
+			<munit-tools:assert-equals doc:name="vars.isReverse == true" doc:id="23a77535-98b9-4092-a16c-35aa8f9d6c79" actual="#[vars.isReverse]" expected="#[true]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDateValidationTest-invalid-noStartDate" doc:id="29f6acf2-915b-4e2d-a171-b5dc46c2a924" description="Test" expectedErrorType="APP:NO_START_DATE">
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Mock Telegram error message" doc:id="9b65af7c-d768-4e81-b566-546a99ae64fd" processor="telegram:send-message">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="No starting date specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="0ab15180-c77d-490a-be44-e60f77f3ffbb" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<set-variable value="#[1]" doc:name="chatId" doc:id="73da1ddf-f88a-4111-9226-b9a477370b69" variableName="chatId"/>
+			<ee:transform doc:name="start:null, end:null" doc:id="9a5b92ab-fe12-453f-8470-af572a0c168f" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="DateValidation flow" doc:id="0f4c3ae0-122b-4c3f-a7c0-702c365d56b7" name="TelegramDateValidation" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call doc:name="Verify no starting date message" doc:id="768ba115-9e86-48d8-ac63-f07171350c60" processor="telegram:send-message">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="No starting date specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="0ab15180-c77d-490a-be44-e60f77f3ffbb" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDateValidationTest-invalid-invalidStartDate" doc:id="f440e9b7-7e85-45a2-9d6d-605d47f49198" description="Test" expectedErrorType="APP:INVALID_START_DATE" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Telegram error message" doc:id="5afb1a28-a452-43ed-897f-3693553f5eee" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Starting date is invalid message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="9b7594c0-06b7-4865-b108-7eef6f0012ee" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<set-variable value="#[1]" doc:name="chatId" doc:id="f5f0bbcf-6398-4e65-9c69-89547b890f2e" variableName="chatId" />
+			<ee:transform doc:name="start:202-04-07, end:null" doc:id="f20157a3-9076-4f3e-ad61-88e27883d184" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"202-04-07"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="DateValidation flow" doc:id="a3b21287-d0f0-42ae-931d-be843b144f79" name="TelegramDateValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify invalid starting date message" doc:id="054ae7db-ed95-4022-b56b-2b9798fc9257" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Starting date is invalid message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="9b7594c0-06b7-4865-b108-7eef6f0012ee" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDateValidationTest-invalid-invalidEndDate" doc:id="68d28060-e018-457e-97eb-0eb07406e243" description="Test" expectedErrorType="APP:INVALID_END_DATE" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Telegram error message" doc:id="a15da659-217d-4f14-a1cf-c85d52fcd2eb" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Ending date is invalid message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="f40ffea1-476f-46c2-a6e5-c7e6c2a0f43c" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<set-variable value="#[1]" doc:name="chatId" doc:id="4f6c280a-b491-4fae-91e3-39b7019960bc" variableName="chatId" />
+			<ee:transform doc:name="start:2020-04-07, end:303-03-08" doc:id="450bd73e-fa2c-4d49-8585-a0ae18b7af1c" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"2020-04-07",
+		"303-03-08"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="DateValidation flow" doc:id="bdbab461-35d0-44c6-9938-ac9f41942353" name="TelegramDateValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify invalid starting date message" doc:id="eb78c082-aa91-49ed-8714-5bd7caf8770c" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Ending date is invalid message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="f40ffea1-476f-46c2-a6e5-c7e6c2a0f43c" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDateValidationTest-invalid-futureStartDate" doc:id="88b6d5f1-6ec9-4f1e-91de-2a8821db1885" description="Test" expectedErrorType="APP:FUTURE_START_DATE" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Telegram error message" doc:id="35e035ac-93ba-4fc1-9131-56d3028e1f2b" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Starting date is in future message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="bd5332c4-bfdc-4f7f-a228-5daf54ad1976" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<set-variable value="#[1]" doc:name="chatId" doc:id="1c0a5fe4-c74d-4648-ad2f-e274fbe65424" variableName="chatId" />
+			<ee:transform doc:name="start:2023-04-07, end:2022-03-08" doc:id="b9ac8668-a6b0-4ab9-8d82-3cde03c60f63" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"2023-04-07",
+		"2022-03-08"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="DateValidation flow" doc:id="5cf2a712-cf35-4813-a542-8b72583c43af" name="TelegramDateValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify invalid starting date message" doc:id="d09e0d6d-c022-4a33-9823-2918fad64c33" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Starting date is in future message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="bd5332c4-bfdc-4f7f-a228-5daf54ad1976" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDateValidationTest-invalid-futureEndDate" doc:id="50695662-5ebc-41cf-a82e-f73fbb085fd5" description="Test" expectedErrorType="APP:FUTURE_END_DATE" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Telegram error message" doc:id="08656859-d7f8-4a89-817d-64cd77901084" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Ending date is in future message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="90b50b34-5346-425d-839d-31cf38a71a0c" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<set-variable value="#[1]" doc:name="chatId" doc:id="a5ea6491-935d-4df2-aab6-0e1b644f4217" variableName="chatId" />
+			<ee:transform doc:name="start:2022-04-07, end:2023-03-08" doc:id="397c42cb-ae13-45cc-8a50-c3f3dca2741b" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"2022-04-07",
+		"2023-03-08"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="DateValidation flow" doc:id="819675b0-bf78-4579-ac23-7142fd666106" name="TelegramDateValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify invalid starting date message" doc:id="d6be2394-7002-4bdd-bb62-0b3249e52234" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Ending date is in future message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="90b50b34-5346-425d-839d-31cf38a71a0c" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramIntegrationTest-noUpdates" doc:id="7846128d-2448-472c-b16d-64861810721e" description="Test">
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"ok":true,&#10;	"result":[&#10;		&#10;	]&#10;}]' doc:name="empty Telegram response" doc:id="bbc656dd-c404-4a73-951b-44a97fd890c1" variableName="emptyResponse" />
+			<munit-tools:mock-when doc:name="Mock no updates telegram response" doc:id="6612a5bc-4f27-4c77-8974-7783d3136b32" processor="telegram:get-updates">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Get Updates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="30be56ac-1976-49ee-b0ae-13395c7d7cc3" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.emptyResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="TelegramIntegration" doc:id="794e5c99-1c2b-45d1-b040-31fbe0b19399" name="TelegramIntegration"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify no new updates message" doc:id="7341a5cb-1f8d-40c2-841d-fd5ea5609195" processor="logger">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="INFO" attributeName="level" />
+					<munit-tools:with-attribute whereValue="Log at exit" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="a6582283-950b-4e38-9e8f-fd59c68b829f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:assert-equals doc:name="size of payload == 0" doc:id="c5cadb63-2ed7-4dd2-83c3-febc9b07353b" actual="#[sizeOf(payload)]" expected="#[0]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramIntegrationTest-startMessage" doc:id="d1307311-81dd-468e-87fe-2ef1309a28f2" description="Test" >
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"ok":true,&#10;	"result":[{&#10;		"update_id":383788217,&#10;		"message": {&#10;			"message_id":102,&#10;			"from": {&#10;				"id":1,&#10;				"is_bot":false,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"language_code":"uk"&#10;				},&#10;			"chat": {&#10;				"id":1,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"type":"private"&#10;				},&#10;			"date":1,&#10;			"text":"/start",&#10;			"entities": [&#10;				{"offset":0,&#10;				"length":4,&#10;				"type":"bot_command"&#10;				}]&#10;			}&#10;		}&#10;	]&#10;}]' doc:name="/start Telegram response" doc:id="ff9ef287-2e1b-4fa0-baa0-f5dfb442a908" variableName="startResponse" />
+			<munit-tools:mock-when doc:name="Mock update telegram response" doc:id="4c2a64b1-3105-40d8-92b4-0cbdceb61bed" processor="telegram:get-updates" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Get Updates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="30be56ac-1976-49ee-b0ae-13395c7d7cc3" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.startResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	&quot;ok&quot;:true,&#10;	&quot;result&quot;: {&#10;		&quot;message_id&quot;:1,&#10;		&quot;from&quot;: {&#10;			&quot;id&quot;:5612305358,&#10;			&quot;is_bot&quot;:true,&#10;			&quot;first_name&quot;:&quot;Marshall's bot&quot;,&#10;			&quot;username&quot;:&quot;mule_marshall_bot&quot;&#10;		},&#10;		&quot;chat&quot;: {&#10;			&quot;id&quot;:1,&#10;			&quot;first_name&quot;:&quot;test&quot;,&#10;			&quot;username&quot;:&quot;test&quot;,&#10;			&quot;type&quot;:&quot;private&quot;&#10;		},&#10;		&quot;date&quot;:1,&#10;		&quot;text&quot;:&quot;Sample text&quot;&#10;	}&#10;}]" doc:name="telegramResponse" doc:id="fdac3571-db0a-4915-b574-0eba56ddaef3" variableName="telegramResponse"/>
+			<munit-tools:mock-when doc:name="Mock telegram /start message" doc:id="01cb8137-192d-4cba-a0b6-a550a5992467" processor="telegram:send-message">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Greetings message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="f81ca74d-317c-4ce2-a3da-c25dd6f84611" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.telegramResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="TelegramIntegration flow" doc:id="4ddf6ed3-7960-4770-b1f8-fe8d8517c278" name="TelegramIntegration" />
+		</munit:execution>
+		<munit:validation >
+			<os:retrieve doc:name="lastMessageID" doc:id="087a0b26-95f4-4e55-900a-877abcd21f3b" key="lastMessageID" target="lastMessageID"/>
+			<os:retrieve doc:name="lastUpdateID" doc:id="53037608-50d2-4974-bf34-74cec6949fb9" key="lastUpdateID" target="lastUpdateID"/>
+			<munit-tools:assert-equals doc:name="lastMessageID == 102" doc:id="b5a6c645-a6d7-4f91-b6af-aac1d216ed09" actual="#[vars.lastMessageID]" expected="#[102]"/>
+			<munit-tools:assert-equals doc:name="lastUpdateID == 383788217" doc:id="3c489d05-a846-4a9c-b736-082ecebc76b4" actual="#[vars.lastUpdateID]" expected="#[383788217]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramIntegrationTest-doubleConvertMessage" doc:id="1d830725-67ff-440c-bc4d-beeaa121f1fc" description="Test">
+		<munit:behavior>
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"ok":true,&#10;	"result":[{&#10;		"update_id":383788217,&#10;		"message": {&#10;			"message_id":102,&#10;			"from": {&#10;				"id":1,&#10;				"is_bot":false,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"language_code":"uk"&#10;				},&#10;			"chat": {&#10;				"id":1,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"type":"private"&#10;				},&#10;			"date":1,&#10;			"text":"/doubleConvert",&#10;			"entities": [&#10;				{"offset":0,&#10;				"length":4,&#10;				"type":"bot_command"&#10;				}]&#10;			}&#10;		}&#10;	]&#10;}]' doc:name="doubleConvert Telegram response" doc:id="7c4e77b2-73a9-4506-ae45-4bcf7e60a8b3" variableName="dcResponse" />
+			<munit-tools:mock-when doc:name="Mock update telegram response" doc:id="44d6bd1e-26f5-4810-8633-2e845505dfe8" processor="telegram:get-updates">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="Get Updates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="30be56ac-1976-49ee-b0ae-13395c7d7cc3" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[vars.dcResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	&quot;ok&quot;:true,&#10;	&quot;result&quot;: {&#10;		&quot;message_id&quot;:1,&#10;		&quot;from&quot;: {&#10;			&quot;id&quot;:5612305358,&#10;			&quot;is_bot&quot;:true,&#10;			&quot;first_name&quot;:&quot;Marshall's bot&quot;,&#10;			&quot;username&quot;:&quot;mule_marshall_bot&quot;&#10;		},&#10;		&quot;chat&quot;: {&#10;			&quot;id&quot;:1,&#10;			&quot;first_name&quot;:&quot;test&quot;,&#10;			&quot;username&quot;:&quot;test&quot;,&#10;			&quot;type&quot;:&quot;private&quot;&#10;		},&#10;		&quot;date&quot;:1,&#10;		&quot;text&quot;:&quot;Sample text&quot;&#10;	}&#10;}]" doc:name="telegramResponse" doc:id="6c5e06bc-f058-4bda-8b71-7cc099d00c26" variableName="telegramResponse"/>
+			<munit-tools:mock-when doc:name="Mock telegram doubleConvert message" doc:id="a0f28373-9aa7-456b-b3ce-7313f57bc7c8" processor="telegram:send-message">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="Not implemented message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="118c181d-4d67-4333-8841-063baf487df9" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.telegramResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref doc:name="TelegramIntegration flow" doc:id="c31179b0-eb07-4c5b-871a-7ad8aa280765" name="TelegramIntegration" />
+		</munit:execution>
+		<munit:validation>
+			<os:retrieve doc:name="lastMessageID" doc:id="ba444890-f7e7-4982-8a60-dea87d2b314e" key="lastMessageID" target="lastMessageID" />
+			<os:retrieve doc:name="lastUpdateID" doc:id="b425a496-1457-472e-9ce5-76232754bcb5" key="lastUpdateID" target="lastUpdateID" />
+			<munit-tools:assert-equals doc:name="lastMessageID == 102" doc:id="2e6f195f-69b6-4755-a29a-e718290ff5e6" actual="#[vars.lastMessageID]" expected="#[102]" />
+			<munit-tools:assert-equals doc:name="lastUpdateID == 383788217" doc:id="3f62640d-157b-4fbb-8bb0-c3fbbf06b2db" actual="#[vars.lastUpdateID]" expected="#[383788217]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramIntegrationTest-helpMessage" doc:id="e3663732-b821-4a28-9456-5be322408714" description="Test">
+		<munit:behavior>
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"ok":true,&#10;	"result":[{&#10;		"update_id":383788217,&#10;		"message": {&#10;			"message_id":102,&#10;			"from": {&#10;				"id":1,&#10;				"is_bot":false,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"language_code":"uk"&#10;				},&#10;			"chat": {&#10;				"id":1,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"type":"private"&#10;				},&#10;			"date":1,&#10;			"text":"/help",&#10;			"entities": [&#10;				{"offset":0,&#10;				"length":4,&#10;				"type":"bot_command"&#10;				}]&#10;			}&#10;		}&#10;	]&#10;}]' doc:name="/help Telegram response" doc:id="e42bb173-22d2-48e9-af5e-06122b029195" variableName="helpResponse" />
+			<munit-tools:mock-when doc:name="Mock update telegram response" doc:id="e38a4961-3126-4501-8920-ffedab1bedb8" processor="telegram:get-updates">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="Get Updates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="30be56ac-1976-49ee-b0ae-13395c7d7cc3" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[vars.helpResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	&quot;ok&quot;:true,&#10;	&quot;result&quot;: {&#10;		&quot;message_id&quot;:1,&#10;		&quot;from&quot;: {&#10;			&quot;id&quot;:5612305358,&#10;			&quot;is_bot&quot;:true,&#10;			&quot;first_name&quot;:&quot;Marshall's bot&quot;,&#10;			&quot;username&quot;:&quot;mule_marshall_bot&quot;&#10;		},&#10;		&quot;chat&quot;: {&#10;			&quot;id&quot;:1,&#10;			&quot;first_name&quot;:&quot;test&quot;,&#10;			&quot;username&quot;:&quot;test&quot;,&#10;			&quot;type&quot;:&quot;private&quot;&#10;		},&#10;		&quot;date&quot;:1,&#10;		&quot;text&quot;:&quot;Sample text&quot;&#10;	}&#10;}]" doc:name="telegramResponse" doc:id="b41681f4-212f-483c-90b5-d50fa7b42c4e" variableName="telegramResponse"/>
+			<munit-tools:mock-when doc:name="Mock telegram /help message" doc:id="8716b44d-3278-45b5-aa29-0eca910a8231" processor="telegram:send-message">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="List of commands message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="a7edfdf0-10f2-4874-95ed-0cb4c9719d6d" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.telegramResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref doc:name="TelegramIntegration flow" doc:id="d336d44a-0412-4c87-83c3-9fa9d225854d" name="TelegramIntegration" />
+		</munit:execution>
+		<munit:validation>
+			<os:retrieve doc:name="lastMessageID" doc:id="1c1e7187-1816-40ca-9f28-da9d088aae74" key="lastMessageID" target="lastMessageID" />
+			<os:retrieve doc:name="lastUpdateID" doc:id="91ed3324-32ef-4214-b2b5-9304d2883768" key="lastUpdateID" target="lastUpdateID" />
+			<munit-tools:assert-equals doc:name="lastMessageID == 102" doc:id="09744629-4792-41f4-9b6d-0e93a9f2c555" actual="#[vars.lastMessageID]" expected="#[102]" />
+			<munit-tools:assert-equals doc:name="lastUpdateID == 383788217" doc:id="1e24902d-192b-4de6-a562-65498c3ffcd8" actual="#[vars.lastUpdateID]" expected="#[383788217]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramIntegrationTest-invalidCommandMessage" doc:id="c296ff4d-d177-4930-8cce-aa41507e62a1" description="Test">
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"ok":true,&#10;	"result":[{&#10;		"update_id":383788217,&#10;		"message": {&#10;			"message_id":102,&#10;			"from": {&#10;				"id":1,&#10;				"is_bot":false,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"language_code":"uk"&#10;				},&#10;			"chat": {&#10;				"id":1,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"type":"private"&#10;				},&#10;			"date":1,&#10;			"text":"/kek",&#10;			"entities": [&#10;				{"offset":0,&#10;				"length":4,&#10;				"type":"bot_command"&#10;				}]&#10;			}&#10;		}&#10;	]&#10;}]' doc:name="Invalid command Telegram response" doc:id="ccad5857-fc46-4d53-9de8-16640ec1c480" variableName="icResponse" />
+			<munit-tools:mock-when doc:name="Mock update telegram response" doc:id="2f934c8d-72d3-4e43-a582-6a437ecc43c0" processor="telegram:get-updates" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Get Updates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="30be56ac-1976-49ee-b0ae-13395c7d7cc3" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.icResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	&quot;ok&quot;:true,&#10;	&quot;result&quot;: {&#10;		&quot;message_id&quot;:1,&#10;		&quot;from&quot;: {&#10;			&quot;id&quot;:5612305358,&#10;			&quot;is_bot&quot;:true,&#10;			&quot;first_name&quot;:&quot;Marshall's bot&quot;,&#10;			&quot;username&quot;:&quot;mule_marshall_bot&quot;&#10;		},&#10;		&quot;chat&quot;: {&#10;			&quot;id&quot;:1,&#10;			&quot;first_name&quot;:&quot;test&quot;,&#10;			&quot;username&quot;:&quot;test&quot;,&#10;			&quot;type&quot;:&quot;private&quot;&#10;		},&#10;		&quot;date&quot;:1,&#10;		&quot;text&quot;:&quot;Sample text&quot;&#10;	}&#10;}]" doc:name="telegramResponse" doc:id="c177d5fb-76bb-4118-9efa-8a54f58dd55e" variableName="telegramResponse"/>
+			<munit-tools:mock-when doc:name="Mock telegram invalid command message" doc:id="1bbe8c00-1173-4872-9a50-47e84a26dcaa" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Invalid command message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="d96e2022-3027-4411-951c-3f1a754bcaa7" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.telegramResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="TelegramIntegration flow" doc:id="90e3bbc6-dc07-498b-8c4d-031abdf8a01d" name="TelegramIntegration" />
+		</munit:execution>
+		<munit:validation >
+			<os:retrieve doc:name="lastMessageID" doc:id="beec7ed8-6d91-43c5-b643-2f1fa17f150a" key="lastMessageID" target="lastMessageID" />
+			<os:retrieve doc:name="lastUpdateID" doc:id="fda736cc-9402-424e-881c-645e049e0999" key="lastUpdateID" target="lastUpdateID" />
+			<munit-tools:assert-equals doc:name="lastMessageID == 102" doc:id="96d2a4ce-ae33-4e5f-b7f6-726737b0beae" actual="#[vars.lastMessageID]" expected="#[102]" />
+			<munit-tools:assert-equals doc:name="lastUpdateID == 383788217" doc:id="5fa477bc-3c4d-4712-8c52-f2beebfd3aac" actual="#[vars.lastUpdateID]" expected="#[383788217]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramIntegrationTest-getHistoryMessage" doc:id="46f06286-6d7c-4af6-870a-c9a97b3d39c4" description="Test">
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"ok":true,&#10;	"result":[{&#10;		"update_id":383788217,&#10;		"message": {&#10;			"message_id":102,&#10;			"from": {&#10;				"id":1,&#10;				"is_bot":false,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"language_code":"uk"&#10;				},&#10;			"chat": {&#10;				"id":1,&#10;				"first_name":"test",&#10;				"username":"test",&#10;				"type":"private"&#10;				},&#10;			"date":1,&#10;			"text":"/history 2020-04-05 2020-04-10",&#10;			"entities": [&#10;				{"offset":0,&#10;				"length":4,&#10;				"type":"bot_command"&#10;				}]&#10;			}&#10;		}&#10;	]&#10;}]' doc:name="get history Telegram response" doc:id="ce5b5484-c378-44b5-8772-b9ece970a532" variableName="getHistoryResponse" />
+			<munit-tools:mock-when doc:name="Mock update telegram response" doc:id="d7f78b5a-b800-48a9-9b36-ff993cb79e07" processor="telegram:get-updates" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Get Updates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="30be56ac-1976-49ee-b0ae-13395c7d7cc3" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.getHistoryResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<file:read doc:name="Read sample png" doc:id="7546e686-eeb9-4d22-a7bf-5de404cdf442" config-ref="MUnit_test_config" path="sampleRequest.png"/>
+			<munit-tools:mock-when doc:name="Mock sample png" doc:id="7f36fa91-5b47-472a-a016-a69b1b6de301" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="getHistory Flow" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="20f06400-52c7-40a0-9e6c-fc5287e3288f" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="requestHistory" attributeName="name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[payload]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock telegram history png response" doc:id="81bd2bc7-ae60-4a9c-8546-8fb8bbf0eef6" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Send Photo Message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="af3a346d-72ab-4e00-bf2d-d20578995cbf" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Request_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="TelegramIntegration flow" doc:id="18dd691e-0854-441e-81f1-948e2705561c" name="TelegramIntegration" />
+		</munit:execution>
+		<munit:validation >
+			<os:retrieve doc:name="lastMessageID" doc:id="6c715831-8185-408d-9ce2-763a6525ab92" key="lastMessageID" target="lastMessageID" />
+			<os:retrieve doc:name="lastUpdateID" doc:id="100d439c-014c-473d-9d5c-bb0a25cc3891" key="lastUpdateID" target="lastUpdateID" />
+			<munit-tools:assert-equals doc:name="lastMessageID == 102" doc:id="c97fae08-c39f-4a4b-8a5f-e9ec2ae5bc11" actual="#[vars.lastMessageID]" expected="#[102]" />
+			<munit-tools:assert-equals doc:name="lastUpdateID == 383788217" doc:id="0deb035d-06af-45f2-86f8-9f70e9b0063a" actual="#[vars.lastUpdateID]" expected="#[383788217]" />
+			<munit-tools:assert-that doc:name="payload is of type png" doc:id="31601bf9-f72f-4c5d-953f-f8d31c0ee7f3" is="#[MunitTools::notNullValue()]" expression='#[payload.^class == "image/png"]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDoubleConvertValidationTest-valid" doc:id="67a55e4c-7209-42e3-b2e9-b189553d806a" description="Test">
+		<munit:execution >
+			<ee:transform doc:name="currency: EUR, amount: 100" doc:id="ed9d6328-aef0-4ada-aa4b-ef1d2d9bea1e">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"EUR",
+		"100"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="TelegramDoubleConvertValidation" doc:id="e44ff8f1-36e4-4686-90d1-52f5fb8b2ad8" name="TelegramDoubleConvertValidation"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals doc:name="amount == 100" doc:id="bedd432e-eee7-4b67-bd86-bdf9fecf3f24" actual="#[vars.amount]" expected='#["100"]'/>
+			<munit-tools:assert-equals doc:name="currency == EUR" doc:id="01cd4e06-743c-40c2-bf24-3148e0681b3c" actual="#[vars.currency]" expected='#["EUR"]'/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDoubleConvertValidationTest-invalid-noCurrency" doc:id="8d1e70b9-0047-47da-b94c-c3db24559e9f" description="Test" expectedErrorType="APP:NO_CURRENCY">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock telegram error message" doc:id="873b04e6-8f3f-4b13-bf0e-714c8171f20a" processor="telegram:send-message">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="No currency specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="a9a9b4e4-7719-4298-8303-5bd6f11859b8" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="currency: null, amount: null" doc:id="b2423b27-be84-4b64-a08c-c9ca2a68363e" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="TelegramDoubleConvertValidation" doc:id="672b48bd-93d7-480f-a4a0-a35b797d7cc7" name="TelegramDoubleConvertValidation" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call doc:name="Verify error handler call" doc:id="0986b3b6-4510-4c33-98c8-41c12d0117ca" processor="telegram:send-message">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="No currency specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="a9a9b4e4-7719-4298-8303-5bd6f11859b8" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDoubleConvertValidationTest-invalid-invalidCurrency" doc:id="fd7bc317-cd38-4efb-9945-3c8d99424a31" description="Test" expectedErrorType="APP:INVALID_CURRENCY" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock telegram error message" doc:id="5425c5bb-6172-4568-bbee-e8a85910b529" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Invalid currency code message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="d01719bf-71e7-4fa7-ae66-165d308a9dd1" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="currency: RUR, amount: null" doc:id="7bb32661-c8d4-40eb-b6c3-d6d9825bbe3f" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"RUR"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="TelegramDoubleConvertValidation" doc:id="2d8d568a-c8e6-4238-b10c-e34e8d02fb12" name="TelegramDoubleConvertValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify error handler call" doc:id="99a7c76d-e8d1-4807-84a1-585a724e560a" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Invalid currency code message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="d01719bf-71e7-4fa7-ae66-165d308a9dd1" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDoubleConvertValidationTest-invalid-noAmount" doc:id="8fc03b58-6a2a-45d0-aecf-cabc137d0e8d" description="Test" expectedErrorType="APP:NO_AMOUNT" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock telegram error message" doc:id="b76902bf-15cc-4326-b251-6e3bc54e68b8" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="No amount specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="af39179e-cd76-454f-9a3c-a2a8d49a8c38" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="currency: EUR, amount: null" doc:id="0e0cf792-2182-4a5c-a6d1-f4fad6a7c809" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"EUR"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="TelegramDoubleConvertValidation" doc:id="d62ef78b-d841-4bbb-9d6e-a81b9c0bb2e9" name="TelegramDoubleConvertValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify error handler call" doc:id="f8d28f71-0e31-4381-af5d-c4b0f5612bc8" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="No amount specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="af39179e-cd76-454f-9a3c-a2a8d49a8c38" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="TelegramDoubleConvertValidationTest-invalid-invalidAmount" doc:id="e375fc3f-5faa-421d-954d-058fae511aa2" description="Test" expectedErrorType="APP:INVALID_AMOUNT" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock telegram error message" doc:id="bcd123e3-2ff1-48e3-848b-6e9db928405d" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Invalid amount specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="e889746b-c5b2-443d-9ea5-8e9dded0e106" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="currency: EUR, amount: 100b" doc:id="ccd71ba5-3812-428a-8461-a391f46fb576" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	command_params: [
+		"EUR",
+		"100b"
+	]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="TelegramDoubleConvertValidation" doc:id="ab6aaa68-4115-4db8-81cd-e7e90b224e50" name="TelegramDoubleConvertValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify error handler call" doc:id="5332a0b4-9bd0-4ff7-8476-38b470a8e1f1" processor="telegram:send-message" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Invalid amount specified message" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="e889746b-c5b2-443d-9ea5-8e9dded0e106" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Telegram_Connector_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

@@ -1,0 +1,18 @@
+telegram:
+  api_key: "![MhuphJg2N3QVTEEswtduPtuRdZ/KLXpsv7vJe5EDG5fVJSdamYre/CTYoaYcaQz+]"
+  api_key2: "![+h1pp/Q7ga8jUxVXs2ZcuTqyVf7ERE2IvUrCPR6OysOvSsYTR5mlnGY1kLh78cb8rZ3qGH8buUk=]"
+  host: "![1UJBnvDpM4GolXIuVyG76aER2v0Dp0Y6VDWJBMQIKFM=]"
+  host2: "![vC3/Fjvb3ZZndutbxYDSM1c8sdX0ULRf]"
+
+chart:
+  host: "![drybWeWi9kP04RQUYf3NBA==]"
+
+exchange:
+  host: "![u+QCi+k2QMorh3p3hVZZbFuwFKfr0Km1]"
+
+file:
+  directory: "![5xK5I5/kFYbr7clYX1fmHKElSmrrxPiXY+xQnoVR/rhwYMuUh2JooqKJZQWmIZTOS0cpvtnF4uTKwF+G2msroG+Y8A6evyp+g2NRbX2aMh8=]"
+
+test:
+  directory: "![5xK5I5/kFYbr7clYX1fmHKElSmrrxPiXY+xQnoVR/rhwYMuUh2JooqKJZQWmIZTOS0cpvtnF4uTKwF+G2msroBqsSjUxGRnq8k+l+1BfaoI=]"
+

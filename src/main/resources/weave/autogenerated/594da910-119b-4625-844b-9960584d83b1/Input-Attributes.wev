@@ -1,0 +1,27 @@
+%dw 2.0
+
+type auto_594da910_119b_4625_844b_9960584d83b1_Input_Attributes = {|
+  clientCertificate?: {|
+    publicKey?: {|  |}, 
+    "type"?: String, 
+    encoded?: Binary
+  |}, 
+  headers: {|  |}, 
+  listenerPath: String, 
+  method: String, 
+  queryParams: {|
+    startDate: String, 
+    endDate?: String, 
+    currencies?: Array<String> {"description": "Currencies to include in a resulting graph"}
+  |}, 
+  queryString: String, 
+  relativePath: String, 
+  remoteAddress: String, 
+  requestPath: String, 
+  requestUri: String, 
+  scheme: String, 
+  uriParams: {|  |}, 
+  version: String, 
+  localAddress: String
+|}
+

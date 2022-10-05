@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:telegram="http://www.mulesoft.org/schema/mule/telegram"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/telegram http://www.mulesoft.org/schema/mule/telegram/current/mule-telegram.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<flow name="TelegramIntegration" doc:id="8ebc42d9-1c0c-4a8c-ac7c-b69a05881881" initialState="started">
+		<scheduler doc:name="5 seconds" doc:id="1a468582-38ac-43f0-87b4-0ca078a59c01" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Log at entry" doc:id="e119a121-bb15-4773-a266-0f1004a49a13" message='#["Processing telegram updates at " ++ now() as String]'/>
+		<os:retrieve doc:name="lastMessageID" doc:id="435215c4-6ef5-4696-a243-5b01296b1f5d" key="lastMessageID" target="lastMessageID">
+			<os:default-value><![CDATA[0]]></os:default-value>
+		</os:retrieve>
+		<os:retrieve doc:name="lastUpdateID" doc:id="36537d3c-6ab8-47b4-b78f-9ce6fc0a9f1b" key="lastUpdateID" target="lastUpdateID">
+			<os:default-value ><![CDATA[#[0]]]></os:default-value>
+		</os:retrieve>
+		<telegram:get-updates doc:name="Get Updates" doc:id="30be56ac-1976-49ee-b0ae-13395c7d7cc3" config-ref="Telegram_Connector_Config" offset="#[vars.lastUpdateID]"/>
+		<ee:transform doc:name="Filter out redundant info" doc:id="58df5e31-74bc-420a-b2bb-a979d7a2a256" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var myArr = payload.result map (obj, index) ->
+{
+    "chat_id": obj.message.chat.id,
+    "message_id": obj.message.message_id,
+    "message": obj.message.text,
+    "is_bot_command": obj.message.entities."type"[0],
+    "update_id": obj.update_id
+}
+---
+myArr filter $.is_bot_command != null filter $.message_id > vars.lastMessageID]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log new updates" doc:id="a70c5c4d-55fc-4137-83eb-3389c735701f" message='#["New updates to process: " ++ sizeOf(payload) as String]'/>
+		<foreach doc:name="For Each" doc:id="45c007ae-bd4a-4e69-b37d-737fb46b5b58" >
+			<os:store doc:name="lastUpdateID" doc:id="668ea477-9cbb-44a3-b25a-b28aed075705" key="lastUpdateID">
+				<os:value ><![CDATA[#[payload.update_id]]]></os:value>
+			</os:store>
+			<os:store doc:name="lastMessageID" doc:id="8d84d22e-9093-4e7e-bb07-2d12878dcaed" key="lastMessageID">
+						<os:value><![CDATA[#[payload.message_id]]]></os:value>
+					</os:store>
+			<ee:transform doc:name="Split text into command" doc:id="090b928f-3869-4f5b-8e62-8b45cb9d31e9" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import drop from dw::core::Arrays
+var text_split = payload.message splitBy " "
+---
+{
+    chat_id: payload.chat_id,
+    command: text_split[0],
+    command_params: drop(text_split, 1)
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<logger level="INFO" doc:name="Log command" doc:id="8e188837-2509-4aab-8b82-c13984478a12" message='#["Processing command: " ++ payload.command ++ " for chat with id=" ++ payload.chat_id as String]'/>
+			<choice doc:name="Choice" doc:id="4943b88e-53bb-4aa9-b49f-c6ecca852e31" >
+				<when expression='#[payload.command == "/history"]'>
+					<set-variable value="#[payload.chat_id]" doc:name="chatId" doc:id="8e5a761a-43af-46cc-a7f9-1b4cb037f904" variableName="chatId" />
+					<flow-ref doc:name="TelegramDateValidation flow" doc:id="3da132f3-883e-4f26-8fdd-8053b8ca02e5" name="TelegramDateValidation"/>
+					<flow-ref doc:name="getHistory Flow" doc:id="20f06400-52c7-40a0-9e6c-fc5287e3288f" name="requestHistory"/>
+					<http:request method="POST" doc:name="Send Photo Message" doc:id="af3a346d-72ab-4e00-bf2d-d20578995cbf" path="/sendPhoto" config-ref="Telegram_Request_Config">
+			<http:body><![CDATA[#[%dw 2.0
+import dw::module::Multipart
+output multipart/form-data
+---
+{
+    parts: {
+        chat_id: Multipart::field("chat_id", vars.chatId as String),
+        photo: Multipart::field("photo", payload, "image/png", "history.png")
+    }
+}]]]></http:body>
+		</http:request>
+					<logger level="INFO" doc:name="Successfully sent photo message" doc:id="5300a592-5a41-4082-ba0c-d8ccf5740a52" message='#["Successfully sent photo message to chat with id=" ++ vars.chatId as String]'/>
+				
+</when>
+				<when expression='#[payload.command == "/help"]'>
+					<telegram:send-message doc:name="List of commands message" doc:id="a7edfdf0-10f2-4874-95ed-0cb4c9719d6d" config-ref="Telegram_Connector_Config">
+						<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "List of commands: \n" ++ 
+	"/history <startDate> [endDate]\n" ++
+	"To get the graph of currency exchange rate fluctuation over the following time period.\n" ++
+	"The dates must be in a following format: YYYY-MM-DD (like 2010-03-29).\n" ++
+	"Starting date parameter is obligatory, ending date is optional - in case of only the startDate specified, endDate will be equal to today's date.\n" ++
+	"/doubleConvert <currencyCode> <amount>\n To calculate, how much UAH would be lost after double conversion to specified currency and back, " ++
+	"you need to specify the currency code (currently available: RUB, EUR, USD) and the amount of UAH to perform double conversion.\n" ++ 
+	"Please note that the exchange rates for double conversion are provided by the PrivatBank."
+}]]]></telegram:send-text-message-request-content>
+					</telegram:send-message>
+					<logger level="INFO" doc:name="Successfully sent /help message" doc:id="a1c1b504-4b6f-4084-a26a-1e8f37f392b1" message='#["Successfully sent /help message to chat with id=" ++ payload.result.chat.id as String]'/>
+				</when>
+				<when expression='#[payload.command == "/doubleConvert"]'>
+					<set-variable value="#[payload.chat_id]" doc:name="chatId" doc:id="98039f12-c2ed-4fa1-ba57-fcccf8513929" variableName="chatId" />
+					<flow-ref doc:name="Validation flow" doc:id="5e2ce7b8-cf4f-407e-8f3f-0e99f87dc5f0" name="TelegramDoubleConvertValidation"/>
+					<flow-ref doc:name="doubleConvertRequest flow" doc:id="e3298481-96b6-428f-a56a-728fc67567b8" name="doubleConvertRequest"/>
+					<telegram:send-message doc:name="doubleConvert message" doc:id="0d737709-9d3e-4153-84f1-8c720b0ec605" config-ref="Telegram_Connector_Config">
+						<telegram:send-text-message-request-content><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: vars.chatId,
+	text: "The amount you specified: " ++ payload.request.amount as String ++ " UAH -> " ++ payload.request.currency as String ++ 
+	"\nAfter conversion " ++ payload.response.amountToLose ++ " UAH"
+	++ " will be lost.\nThe leftover is " ++ payload.response.amountThatLeft as String ++ " UAH" 
+}]]]></telegram:send-text-message-request-content>
+					</telegram:send-message>
+					<logger level="INFO" doc:name="Successfully sent /doubleConvert message" doc:id="b9c31f2c-1195-40a7-a8d8-8aa8ba5bacb3" message='#["Successfully sent /doubleConvert message to chat with id=" ++ payload.result.chat.id as String]' />
+				</when>
+				<when expression='#[payload.command == "/start"]'>
+					<telegram:send-message doc:name="Greetings message" doc:id="f81ca74d-317c-4ce2-a3da-c25dd6f84611" config-ref="Telegram_Connector_Config">
+						<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "Hello and welcome to the Marshall's bot! To check out list of commands, try /help.\n" ++ 
+	"This bot was made for a Mulesoft demo project by I. Kostroba.\n" ++
+	"Glory to the Armed Forces of Ukraine."
+}]]]></telegram:send-text-message-request-content>
+					</telegram:send-message>
+					<logger level="INFO" doc:name="Successfully sent /start message" doc:id="da57f6a3-7e3f-4177-a22f-45c498fd25af" message='#["Successfully sent /start message to chat with id=" ++ payload.result.chat.id as String]'/>
+				</when>
+				<otherwise >
+					<telegram:send-message doc:name="Invalid command message" doc:id="d96e2022-3027-4411-951c-3f1a754bcaa7" config-ref="Telegram_Connector_Config">
+						<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "Invalid command " ++ payload.command ++ "! Try /help to find out the list of commands."
+}]]]></telegram:send-text-message-request-content>
+					</telegram:send-message>
+					<logger level="INFO" doc:name="Successfully sent invalid command message" doc:id="4a697960-27bd-4b49-99b2-7534f7609d24" message='#["Successfully sent invalid command message to chat with id=" ++ payload.result.chat.id as String]'/>
+
+					
+				</otherwise>
+			</choice>
+		</foreach>
+		<logger level="INFO" doc:name="Log at exit" doc:id="a6582283-950b-4e38-9e8f-fd59c68b829f" message='#["Successfully finished processing updates at " ++ now() as String]' />
+	
+</flow>
+	<flow name="TelegramDateValidation" doc:id="677bfb1e-14d1-40b9-9296-05044a955d81" >
+		<set-variable value="#[payload.command_params[0]]" doc:name="startDate" doc:id="c208da2f-a716-4e9b-aff7-8fb5138a2f5a" variableName="startDate" />
+		<validation:is-not-null doc:name="Is startDate present" doc:id="874dcea7-ebe0-4546-a606-0ce0adde52c6" value="#[vars.startDate]" message="Please, enter a starting date! ">
+			<error-mapping sourceType="VALIDATION:NULL" targetType="APP:NO_START_DATE" />
+		</validation:is-not-null>
+		<validation:is-time doc:name="Is startDate a valid date" doc:id="a7e71a73-5d79-4759-8c61-a17b8aaf97e5" time="#[vars.startDate]" locale="UK" pattern="yyyy-MM-dd" message="The start date is in invalid format! Try yyyy-MM-dd!">
+						<error-mapping sourceType="VALIDATION:INVALID_TIME" targetType="APP:INVALID_START_DATE" />
+					</validation:is-time>
+		<validation:is-false doc:name="startDate doesn't exceed today" doc:id="6a94a56d-cce0-4f54-8539-823397ad4d9c" expression="#[vars.startDate &gt; (now() as Date)]" message="#[&quot;startDate exceeds today's date!&quot;]">
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:FUTURE_START_DATE" />
+		</validation:is-false>
+		<set-variable value="#[payload.command_params[1] default now() as Date]" doc:name="endDate" doc:id="832c1a77-7347-47ec-8668-2a10197ad4fc" variableName="endDate" />
+		<validation:is-time doc:name="Is endDate a valid date" doc:id="fbce2acd-de2b-4481-89fb-e977bbc3f4dd" time="#[vars.endDate]" locale="UK" pattern="yyyy-MM-dd" message="The end date is in invalid format! Try yyyy-MM-dd!">
+						<error-mapping sourceType="VALIDATION:INVALID_TIME" targetType="APP:INVALID_END_DATE" />
+					</validation:is-time>
+		<validation:is-false doc:name="endDate doesn't exceed today" doc:id="645464e8-564b-4bcb-b4d2-e17fe6551f2d" expression="#[vars.endDate &gt; (now() as Date)]" message="#[&quot;endDate exceeds today's date!&quot;]">
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:FUTURE_END_DATE" />
+		</validation:is-false>
+		<set-variable value="#[vars.endDate as Date &lt; vars.startDate as Date]" doc:name="isReverse" doc:id="a4fe89ff-4d7b-4857-9c3d-4e36fbf45d32" variableName="isReverse"/>
+		<choice doc:name="Choice" doc:id="7b569c5e-2143-438a-bd1a-6cb20b863253" >
+			<when expression="#[vars.isReverse]">
+				<set-variable value="#[vars.startDate]" doc:name="temp_startDate" doc:id="921445f8-7d0d-4db9-80b7-3ee6eb9eb061" variableName="temp_startDate"/>
+				<set-variable value="#[vars.endDate]" doc:name="startDate" doc:id="5a8cdeb2-4ed0-4934-bab1-032508a3dcc3" variableName="startDate"/>
+				<set-variable value="#[vars.temp_startDate]" doc:name="endDate" doc:id="7fec28d5-d71b-4c6d-adcd-fb8bbaa64199" variableName="endDate"/>
+				<logger level="INFO" doc:name="Dates in reverse order" doc:id="fa111912-013a-4549-aee0-3d157e732757" message='#["Dates in the request are in reverse order, reversing back to normal"]'/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Dates in right order" doc:id="e5fa7b27-3eec-4578-b703-6858f323d5be" message='#["Dates in the request are in non-reverse order, continuing to process"]'/>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="171108bd-a7da-4c46-9301-124171d77cea" type="APP:NO_START_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="c4b93da4-7d0e-44ed-8aa5-d74c12316fbd" message='#[%dw 2.0&#10;output application/java&#10;---&#10;"Error processing request for id=" ++ vars.chatId as String ++ " because of no starting date specified by user!"]' />
+				<telegram:send-message doc:name="No starting date specified message" doc:id="0ab15180-c77d-490a-be44-e60f77f3ffbb" config-ref="Telegram_Connector_Config">
+					<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "You have specified no starting date!"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b03df0b9-f542-44c1-bf5f-29cf2043a456" type="APP:INVALID_START_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="4801e0f5-ebef-45a2-bd5f-558747bb87d4" message='#[%dw 2.0&#10;output application/java&#10;---&#10;"Error processing request for id=" ++ vars.chatId as String ++ " because of an invalid date " ++ vars.startDate as String ++ " by user!"]'/>
+				<telegram:send-message doc:name="Starting date is invalid message" doc:id="9b7594c0-06b7-4865-b108-7eef6f0012ee" config-ref="Telegram_Connector_Config">
+					<telegram:send-text-message-request-content><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "Invalid starting date " ++ vars.startDate as String ++ "! It must be in format YYYY-MM-DD (like 2020-03-29)!"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="6620e136-8a87-4917-8139-59af6385ca80" type="APP:INVALID_END_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="82ece78b-d0f5-494b-b383-949028d96f5c" message='#[%dw 2.0&#10;output application/java&#10;---&#10;"Error processing request for id=" ++ vars.chatId as String ++ " because of an invalid date " ++ vars.endDate as String ++ " by user!"]'/>
+				<telegram:send-message doc:name="Ending date is invalid message" doc:id="f40ffea1-476f-46c2-a6e5-c7e6c2a0f43c" config-ref="Telegram_Connector_Config">
+					<telegram:send-text-message-request-content><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "Invalid ending date " ++ vars.endDate as String ++ "! It must be in format YYYY-MM-DD (like 2020-03-29)!"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ce794c34-4e66-4d00-86c8-1f47a441bc1a" type="APP:FUTURE_START_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="5345e6f3-1e11-4055-95db-122c6b50ff53" message='#[%dw 2.0&#10;output application/java&#10;---&#10;"Error processing request for id=" ++ vars.chatId as String ++ " because of an invalid date " ++ vars.startDate as String ++ " by user!"]'/>
+				<telegram:send-message doc:name="Starting date is in future message" doc:id="bd5332c4-bfdc-4f7f-a228-5daf54ad1976" config-ref="Telegram_Connector_Config">
+					<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "Invalid starting date " ++ vars.startDate as String ++ "! It must not exceed today!"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1d067ef5-fef7-49b9-8947-37f22c179c6c" type="APP:FUTURE_END_DATE" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="c29784e4-63ad-4c8d-8bba-4a3b04a6f6ba" message='#[%dw 2.0&#10;output application/java&#10;---&#10;"Error processing request for id=" ++ vars.chatId as String ++ " because of an invalid date " ++ vars.endDate as String ++ " by user!"]'/>
+				<telegram:send-message doc:name="Ending date is in future message" doc:id="90b50b34-5346-425d-839d-31cf38a71a0c" config-ref="Telegram_Connector_Config">
+					<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "Invalid ending date " ++ vars.endDate as String ++ "! It must not exceed today!"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="TelegramDoubleConvertValidation" doc:id="06d0cd2c-ae3c-4a7d-872b-7cb51ffc3160" >
+		<set-variable value="#[payload.command_params[0]]" doc:name="currency" doc:id="61f9df03-86c0-4f55-858a-e1660117a4fb" variableName="currency" />
+		<validation:is-not-null doc:name="Is currency present" doc:id="8c238c1b-6369-40ea-8cd2-f607bf3ad62f" value="#[vars.currency]" message='#["Currency field is empty"]'>
+			<error-mapping targetType="APP:NO_CURRENCY" sourceType="VALIDATION:NULL"/>
+		</validation:is-not-null>
+		<validation:is-true doc:name="Currency code valid" doc:id="9975ab41-5ff2-4a95-9ab6-a11e9938a89a" expression="#[['EUR', 'USD', 'RUB'] contains vars.currency]" message='#["Currency code is invalid"]'>
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:INVALID_CURRENCY" />
+		</validation:is-true>
+		<set-variable value="#[payload.command_params[1]]" doc:name="amount" doc:id="561aaa49-c0c1-4078-b9e4-9c21d79b98e0" variableName="amount" />
+		<validation:is-not-null doc:name="Is amount present" doc:id="c3cddd56-30c2-4267-ac03-243f372432ed" value="#[vars.amount]" message='#["Amount field is empty"]'>
+			<error-mapping sourceType="VALIDATION:NULL" targetType="APP:NO_AMOUNT" />
+		</validation:is-not-null>
+		<validation:matches-regex doc:name="Is amount valid" doc:id="0e530663-1cf0-47fa-9e65-76e4d4693d98" value="#[vars.amount as String]" regex="#[/^[0-9]*\.?[0-9]*$/]" message="#[&quot;Amount isn't a valid number&quot;]">
+			<error-mapping targetType="APP:INVALID_AMOUNT" />
+		</validation:matches-regex>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5c74e4b2-1428-4911-b305-5616f1795f0c" type="APP:NO_CURRENCY">
+				<logger level="INFO" doc:name="Error processing request" doc:id="49153578-d45d-4e79-9ae3-bbea941339f9" message='#["Error processing request because of no currency provided by user!"]'/>
+				<telegram:send-message doc:name="No currency specified message" doc:id="a9a9b4e4-7719-4298-8303-5bd6f11859b8" config-ref="Telegram_Connector_Config" >
+					<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "You have specified no currency code!"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b0abde61-493b-4927-885e-f44ee34a2164" type="APP:INVALID_CURRENCY" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="f8d9193b-dd4f-4fb0-9a60-7c66f1504bbf" message='#["Error processing request because of invalid currency provided by user!"]' />
+				<telegram:send-message doc:name="Invalid currency code message" doc:id="d01719bf-71e7-4fa7-ae66-165d308a9dd1" config-ref="Telegram_Connector_Config" >
+					<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "You have specified invalid currency code! Try USD, EUR or RUB"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="19937442-0a1c-4415-9d27-d3d9265373c3" type="APP:NO_AMOUNT" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="bb74a705-45a0-4b11-8b32-531953654136" message='#["Error processing request because of no amount provided by user!"]' />
+				<telegram:send-message doc:name="No amount specified message" doc:id="af39179e-cd76-454f-9a3c-a2a8d49a8c38" config-ref="Telegram_Connector_Config" >
+					<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "You have specified no amount of money!"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f81d1c4f-98a5-4536-abdd-012943c2cb8c" type="APP:INVALID_AMOUNT" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="9e81b9b7-ad97-4eff-9900-414f4efdb925" message='#["Error processing request because of invalid amount provided by user!"]' />
+				<telegram:send-message doc:name="Invalid amount specified message" doc:id="e889746b-c5b2-443d-9ea5-8e9dded0e106" config-ref="Telegram_Connector_Config" >
+					<telegram:send-text-message-request-content ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	chat_id: payload.chat_id,
+	text: "You have specified an invalid amount of money! Try using integer or float numbers"
+}]]]></telegram:send-text-message-request-content>
+				</telegram:send-message>
+			
+</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

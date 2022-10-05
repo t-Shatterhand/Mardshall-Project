@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:telegram="http://www.mulesoft.org/schema/mule/telegram" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/telegram http://www.mulesoft.org/schema/mule/telegram/current/mule-telegram.xsd">
+	<flow name="getHistory" doc:id="594da910-119b-4625-844b-9960584d83b1" >
+		<logger level="INFO" doc:name="Log at entry" doc:id="40f756dc-f2d0-475b-b395-36f4b895ac92" message='#["Processing the GET /history request with following query string: " ++ message.attributes.queryString]'/>
+		<flow-ref doc:name="requestValidation Flow" doc:id="fe0d1932-250e-44b0-881b-ce79af25dccc" name="requestValidation"/>
+		<flow-ref doc:name="requestHistory Flow" doc:id="08f1af1d-4459-417d-8f03-10b7ab1ffd39" name="requestHistory"/>
+	</flow>
+	<flow name="requestValidation" doc:id="a41b0f63-cd89-4549-9b34-10a15fce4114" >
+		<set-variable value="#[message.attributes.queryParams.startDate]" doc:name="startDate" doc:id="25d50683-059f-430b-a046-3aba41338004" variableName="startDate" />
+		<validation:is-not-null doc:name="Is startDate present" doc:id="feaf164e-8ed9-42ba-a8ca-788a91088f7a" value="#[vars.startDate]" message="Please, enter a starting date! ">
+			<error-mapping sourceType="VALIDATION:NULL" targetType="APP:NO_START_DATE" />
+		</validation:is-not-null>
+		<validation:is-time doc:name="Is startDate a valid date" doc:id="b8ee65e0-da82-4b66-beac-c17ca950143a" time="#[vars.startDate]" locale="UK" pattern="yyyy-MM-dd" message="The start date is in invalid format! Try yyyy-MM-dd!">
+						<error-mapping sourceType="VALIDATION:INVALID_TIME" targetType="APP:INVALID_START_DATE" />
+					</validation:is-time>
+		<validation:is-false doc:name="startDate doesn't exceed today" doc:id="59eba9cd-1b7f-476c-9def-8bc5d290ec24" expression="#[vars.startDate &gt; (now() as Date)]" message="#[&quot;startDate exceeds today's date!&quot;]">
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:FUTURE_START_DATE" />
+		</validation:is-false>
+		<set-variable value="#[message.attributes.queryParams.endDate default now() as Date]" doc:name="endDate" doc:id="d7aea97d-86d7-4864-981b-1298b78f6e75" variableName="endDate" />
+		<validation:is-time doc:name="Is endDate a valid date" doc:id="75a4a8ba-2ace-4e5b-aea8-c0be36e22901" time="#[vars.endDate]" locale="UK" pattern="yyyy-MM-dd" message="The end date is in invalid format! Try yyyy-MM-dd!">
+						<error-mapping sourceType="VALIDATION:INVALID_TIME" targetType="APP:INVALID_END_DATE" />
+					</validation:is-time>
+		<validation:is-false doc:name="endDate doesn't exceed today" doc:id="6d964d1e-e2b3-4d53-a1fe-d1a836a16aea" expression="#[vars.endDate &gt; (now() as Date)]" message="#[&quot;endDate exceeds today's date!&quot;]">
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:FUTURE_END_DATE" />
+		</validation:is-false>
+		<set-variable value="#[vars.endDate as Date &lt; vars.startDate as Date]" doc:name="isReverse" doc:id="eb8f0bf1-d6ac-4ace-b9bd-f1893542ec9f" variableName="isReverse"/>
+		<choice doc:name="Choice" doc:id="08e28bc8-f2fc-4c22-892f-a8c8685c20ae" >
+			<when expression="#[vars.isReverse]">
+				<set-variable value="#[vars.startDate]" doc:name="temp_startDate" doc:id="699bca10-5dd4-41c7-a816-a7f17888bf36" variableName="temp_startDate"/>
+				<set-variable value="#[vars.endDate]" doc:name="startDate" doc:id="79c2f0e1-91e0-4fae-991f-911b5518683b" variableName="startDate"/>
+				<set-variable value="#[vars.temp_startDate]" doc:name="endDate" doc:id="098ed543-b80e-4014-a169-0a40faad4c39" variableName="endDate"/>
+				<logger level="INFO" doc:name="Dates in reverse order" doc:id="db27eb7a-38da-49aa-818f-ee06dcb8dc1b" message='#["Dates in the request are in reverse order, reversing back to normal"]'/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Dates in right order" doc:id="d92fecf8-9521-4090-80f0-1e92c85fb59b" message='#["Dates in the request are in non-reverse order, continuing to process"]'/>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2bf26a2f-0458-44bc-80ac-a75914c6f7b6" type="APP:NO_START_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="27e4d5e0-b69d-45f0-bc13-586bf8bd62c9" message='#["Error processing request because of no starting date specified by user!"]' />
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="e4cfd97a-7213-4cf5-a089-8b67ded1b75b" variableName="reasonPhrase"/>
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="50c42306-b063-4520-a9fd-388131a58a99" variableName="httpStatus"/>
+				<set-payload value='#["No starting date specified!"]' doc:name="No starting date response" doc:id="1abd9c47-ad46-4848-8453-cad598dcce1c" />
+			
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="93b9d630-8d08-4e7c-a964-da4561e9975e" type="APP:INVALID_START_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="0978be54-2c33-4fc8-bac2-b190455316d5" message='#["Error processing request because of an invalid date " ++ vars.startDate as String ++ " by user!"]'/>
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="2d111a35-36b6-4cfd-befa-d8819b1050b5" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="39ddfa96-8e11-46f6-8a07-32c06ea75c4e" variableName="httpStatus" />
+				<set-payload value='#["Invalid starting date specified"]' doc:name="Invalid starting date response" doc:id="2ae0a865-a037-4ab2-aaab-39e1f99c6591" />
+			
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5a27179f-2890-4d5a-a62e-4c9cca4a9dcc" type="APP:INVALID_END_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="f732b8c6-2557-4aeb-9c05-e2dd7d312cd9" message='#["Error processing request because of an invalid date " ++ vars.endDate as String ++ " by user!"]'/>
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="e9a8eca4-4174-47a3-aec0-059028d09fcc" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="6c02e425-39f0-42c3-a5aa-00ef55856a84" variableName="httpStatus" />
+				<set-payload value='#["Invalid ending date specified"]' doc:name="Invalid ending date response" doc:id="2d85c491-932f-42e8-8b86-0b66e4e9ad8a" />
+			
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="17d9292d-eaca-413e-b691-75ab60cc140a" type="APP:FUTURE_START_DATE">
+				<logger level="INFO" doc:name="Error processing request" doc:id="3f1254b1-e8b2-43a8-ae9b-0c49161684b8" message='#["Error processing request because of an invalid date " ++ vars.startDate as String ++ " by user!"]'/>
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="8ae5f539-d194-4bad-bd5c-9e99b13b8e54" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="6db4cf0d-f238-42a9-8d1e-8512528e4579" variableName="httpStatus" />
+				<set-payload value='#["Starting date is in future!"]' doc:name="Future starting date response" doc:id="0f7995df-c355-49fe-bc41-464274bb0e96" />
+			
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c8cc1b0e-d09a-4857-8a23-6b68ba29c462" type="APP:FUTURE_END_DATE" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="f9aa0fbd-3cdf-410c-a6de-ba446bd7f835" message='#["Error processing request because of an invalid date " ++ vars.endDate as String ++ " by user!"]'/>
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="a31a1782-d6f8-4d40-adc1-5b066c0d10d6" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="02a23c34-2939-48b8-8df2-3f3d88e7cf75" variableName="httpStatus" />
+				<set-payload value='#["Ending date is in future!"]' doc:name="Future ending date response" doc:id="9e29ed97-30fa-4eac-9e74-e88cf1a454f8" />
+			
+</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="requestHistory" doc:id="7382e5cb-f36c-4de3-bfe0-8320928d75b0" >
+		<ee:transform doc:name="Get list of dates" doc:id="c6828f1b-9173-4b99-83e5-96fc879dd937" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var days = daysBetween(vars.startDate as Date, vars.endDate as Date)
+var period = if (ceil(days/180) == 0) 1
+             else ceil(days/180)
+var startDate = vars.startDate as Date
+var outputArr = (0 to days/period) map (obj, index) ->
+    (startDate + ("P$(period*index)D" as Period))
+---
+outputArr]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Setup CSV for rates" doc:id="bbe63fd8-27bb-4bf7-9b15-368e1a328254" config-ref="CSV_File_Config" path="rates.csv">
+			<file:content ><![CDATA[date,USD,EUR,JPY,RUB
+]]></file:content>
+		</file:write>
+		<batch:job jobName="ask_for_rates" doc:id="7a1a429a-3fdd-49fa-b27b-a12ed0ef38f8" maxFailedRecords="190">
+			<batch:process-records >
+				<batch:step name="initial_rates" doc:id="0246e9d6-9f61-46e6-a8d9-b33b9bb0d358" >
+					<logger level="INFO" doc:name="Log before request" doc:id="42ee6317-35e7-4dbb-8936-81b851bcb019" message='#["Performing request on exchangerate API for a date: " ++ payload as String]'/>
+					<http:request method="GET" doc:name="Ask for rates at date" doc:id="1f614c02-5350-4a92-840c-c793783f6e92" config-ref="API_Exchangerate_Request_Config" path="#[payload as String]">
+						<http:query-params><![CDATA[#[output application/java
+---
+{
+	"base" : "UAH"
+}]]]></http:query-params>
+					</http:request>
+					<logger level="INFO" doc:name="Log after request" doc:id="2b01e81e-922a-4a2c-8d5d-1f4b89361fd4" message='#["Successfully performed request on exchangerate API for a date " ++ payload.date as String ++ ". The request returned base " ++ payload.base as String]' />
+					<set-variable value='#[payload.base as String == "UAH"]' doc:name="isBaseValid" doc:id="61f57e39-08ea-4937-ae3a-8c209a0ff29b" variableName="isBaseValid"/>
+				</batch:step>
+				<batch:step name="filterValidResponses" doc:id="1c2bdc58-de57-4dcb-9876-edc5029da44a" acceptExpression="vars.isBaseValid == true">
+					<file:write doc:name="Store Rates" doc:id="f3a69f40-cc6f-4437-a6a3-83469ae58d05" config-ref="CSV_File_Config" path="rates.csv" mode="APPEND">
+						<file:content><![CDATA[#[%dw 2.0
+output application/csv
+header=false
+---
+{
+    date: payload.date,
+    USD: payload.rates.USD,
+    EUR: payload.rates.EUR,
+    JPY: payload.rates.JPY,
+    RUB: payload.rates.RUB
+}]]]></file:content>
+					</file:write>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<flow-ref doc:name="processRecords Flow" doc:id="d13eff2f-e0ae-4e93-ae38-b07b4a30e795" name="processRecords"/>
+			</batch:on-complete>
+		</batch:job>
+		<vm:consume doc:name="Consume graph result" doc:id="3a842632-e57b-472d-abfd-18ed627944de" config-ref="VM_Config" queueName="request_result" timeout="120"/>
+	</flow>
+	<flow name="processRecords" doc:id="6b9b551f-d32d-4e7a-bb83-47cdbb50ad8a" >
+		<file:read doc:name="Read unsorted CSV" doc:id="5d7d98b6-8c60-494a-a0b0-17054d7b34dc" config-ref="CSV_File_Config" path="rates.csv" outputMimeType="application/csv"/>
+		<ee:transform doc:name="Sort CSV" doc:id="17eb4b07-cace-45ca-9179-6596a9ba0614" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+var unordered_csv = payload orderBy daysBetween (now() as Date, $.date as Date {format:'yyyy-MM-dd'} )
+var ordered_csv = if (vars.isReverse as Boolean) unordered_csv orderBy -$$
+                  else unordered_csv
+---
+ordered_csv]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;  &quot;backgroundColor&quot;: &quot;transparent&quot;,&#10;  &quot;width&quot;: 500,&#10;  &quot;height&quot;: 300,&#10;  &quot;format&quot;: &quot;png&quot;,&#10;  &quot;chart&quot;: {&#10;	  &quot;type&quot;: 'line',&#10;	  &quot;data&quot;: {&#10;		  labels: payload.date,&#10;		  datasets: [&#10;		  	{&#10;		  		label: 'USD',&#10;		  		data: payload.USD&#10;		  	},&#10;            {&#10;                label: 'EUR',&#10;                data: payload.EUR&#10;            },&#10;            {&#10;                label: 'JPY',&#10;                data: payload.JPY&#10;            },&#10;            {&#10;                label: 'RUB',&#10;                data: payload.RUB&#10;            }&#10;		    ]&#10;        }&#10;    }&#10;}]" doc:name="chart_config" doc:id="8bd6b80d-fccb-40d5-9634-223acff86dad" variableName="chart_config"/>
+		<logger level="INFO" doc:name="Log before request" doc:id="1a566d49-5ef6-4ee6-8290-db4131b15327" message='#["Performing request to quickchart with following boundaries: " ++ vars.startDate as String ++ ", " ++ vars.endDate as String]'/>
+		<http:request method="POST" doc:name="Chart with given config" doc:id="4fd0235f-ea04-4bdc-a834-2cc7cb140608" config-ref="Quickchart_Request_Config" path="/chart">
+			<http:body><![CDATA[#[vars.chart_config]]]></http:body>
+		</http:request>
+		<logger level="INFO" doc:name="Log after request" doc:id="206e8881-3fcd-4f3b-9c6a-eff63c1a927c" message='#["Successfully performed request to quickchart"]'/>
+		<vm:publish queueName="request_result" doc:name="Publish graph result" doc:id="5b76c0f7-7c80-42cc-af10-1a79461a8148" config-ref="VM_Config" timeout="50"/>
+	</flow>
+	<flow name="getDoubleConvert" doc:id="52e7d848-15f2-4d3e-9d94-0461b814be62" >
+		<logger level="INFO" doc:name="Log at entry" doc:id="8032d03d-2cda-44f4-aca7-7664b67202ba" message='#["Processing the GET /doubleConvert request with following query string: " ++ message.attributes.queryString]' />
+		<flow-ref doc:name="doubleConvertValidation" doc:id="cc0aebd1-3865-4ce1-9d1e-d79bb959128d" name="doubleConvertValidation"/>
+		<flow-ref doc:name="doubleConvertRequest" doc:id="6dc80511-6a87-4826-a7f9-a6d1a04e6940" name="doubleConvertRequest"/>
+		<logger level="INFO" doc:name="Log at exit" doc:id="182c99ad-6c1b-43a6-b2e7-aa857b13fead" message='#["Successfully finished processing GET /doubleConvert request"]'/>
+	</flow>
+	<flow name="doubleConvertRequest" doc:id="4b62a156-a5b4-445c-a419-93dce404f70e" >
+		<http:request method="GET" doc:name="GET Privatbank exchangerates" doc:id="25662ea7-a339-48a5-bf50-6fa9f0d56e15" url="https://api.privatbank.ua/p24api/pubinfo?exchange&amp;json&amp;coursid=11" />
+		<choice doc:name="Choice" doc:id="459d2496-0640-46ee-ab8a-93781144ce4d">
+			<when expression="#[vars.currency == 'EUR']">
+				<ee:transform doc:name="Get EUR exchange rates" doc:id="69aa7824-9c75-4eab-8203-adbf9b781b15">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"buy_rate": payload[1].buy,
+	"sell_rate": payload[1].sale
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[vars.currency == "USD"]'>
+				<ee:transform doc:name="Get USD exchange rates" doc:id="ddf136a1-c36f-429c-97f7-db730a0875fb">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"buy_rate": payload[0].buy,
+	"sell_rate": payload[0].sale
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Get RUB exchange rates" doc:id="bb58aa31-39df-4bc6-9e40-7dd7522b6a8b">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"buy_rate": payload[2].buy,
+	"sell_rate": payload[2].sale
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<set-variable value="#[%dw 2.0&#10;output application/java&#10;---&#10;vars.amount as Number / payload.sell_rate as Number]" doc:name="amountInCurrency" doc:id="3e444409-859d-4a10-a9da-614e1bdaaffb" variableName="amountInCurrency" />
+		<set-variable value="#[%dw 2.0&#10;output application/java&#10;---&#10;vars.amountInCurrency as Number * payload.buy_rate as Number]" doc:name="amountInUAH" doc:id="4eb5ef69-aab0-48b2-85d8-96e73cef4757" variableName="amountInUAH" />
+		<set-variable value='#[%dw 2.0&#10;output application/java&#10;---&#10;(vars.amount as Number - vars.amountInUAH as Number)]' doc:name="calculatedDifference" doc:id="f95e60bd-32bd-4a64-89c8-834aad0f625b" variableName="calculatedDifference" />
+		<ee:transform doc:name="Output message" doc:id="fa79b1df-5bde-4144-bb21-6245293df890">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+---
+{
+	request: {
+		currency: vars.currency,
+		amount: vars.amount
+	},
+	response: {
+		isRequestValid: true,
+		amountToLose: vars.calculatedDifference as String {format: "#.00"},
+		amountThatLeft: (vars.amount as Number - vars.calculatedDifference as Number) as String {format: "#.00"}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="doubleConvertValidation" doc:id="8f2fdd92-20dc-4a3d-b20a-5fa7cd5db168" >
+		<set-variable value="#[message.attributes.queryParams.currency]" doc:name="currency" doc:id="b1642dcb-3efe-4045-8c5c-1ae2b77fe3d8" variableName="currency" />
+		<validation:is-not-null doc:name="Is currency present" doc:id="09df1b1e-a166-4925-988b-640a484e2aa2" value="#[vars.currency]" message='#["Currency field is empty"]'>
+			<error-mapping targetType="APP:NO_CURRENCY" sourceType="VALIDATION:NULL"/>
+		</validation:is-not-null>
+		<validation:is-true doc:name="Currency code valid" doc:id="1bf87c13-97b8-498a-9aff-3fa0610d87a5" expression="#[['EUR', 'USD', 'RUB'] contains vars.currency]" message='#["Currency code is invalid"]'>
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:INVALID_CURRENCY" />
+		</validation:is-true>
+		<set-variable value="#[message.attributes.queryParams.amount]" doc:name="amount" doc:id="c5fd2d4a-8e1d-4910-9b14-e2ea03b12376" variableName="amount" />
+		<validation:is-not-null doc:name="Is amount present" doc:id="2e701952-37b2-42e8-a9cc-beed66cc064e" value="#[vars.amount]" message='#["Amount field is empty"]'>
+			<error-mapping sourceType="VALIDATION:NULL" targetType="APP:NO_AMOUNT" />
+		</validation:is-not-null>
+		<validation:matches-regex doc:name="Is amount valid" doc:id="a09da151-cd3f-4ae6-8132-02c35f46435c" value="#[vars.amount as String]" regex="#[/^[0-9]*\.?[0-9]*$/]" message="#[&quot;Amount isn't a valid number&quot;]">
+			<error-mapping targetType="APP:INVALID_AMOUNT" />
+		</validation:matches-regex>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4cf8d2e1-15b7-434b-8578-73bd4cd61853" type="APP:NO_CURRENCY">
+				<logger level="INFO" doc:name="Error processing request" doc:id="a96168d2-b24a-470d-878f-3f3195bb2ec0" message='#["Error processing request because of no currency provided by user!"]'/>
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="128e96be-5aa5-49a5-a2fd-c11f959e3c53" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="0d5ca866-7bae-45fe-949b-d9b5cadd40fb" variableName="httpStatus" />
+				<set-payload value='#["No currency specified!"]' doc:name="No currency response" doc:id="eda451e0-8be4-42fb-889e-63bd857ebd2a" />
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="40a34366-ec5a-4b59-bf6c-01fddbab5272" type="APP:INVALID_CURRENCY" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="d901a64f-298a-4ca4-a7a4-fea423c0c215" message='#["Error processing request because of invalid currency provided by user!"]' />
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="8836d501-9500-4b17-a3c3-6dcea469cbaf" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="8ade30d5-add7-440f-ad6e-c05a968f3147" variableName="httpStatus" />
+				<set-payload value='#["Invalid currency specified!"]' doc:name="Invalid currency response" doc:id="f3d69abc-0c40-4c5d-9ef1-e7aa9b43c155" />
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="771a066a-7831-408d-ace6-a0a06254e5e1" type="APP:NO_AMOUNT" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="4e6136f1-42e6-4164-8f4d-9e6be6abe8d6" message='#["Error processing request because of no amount provided by user!"]' />
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="f89a4175-b7c0-49d1-b80f-7a23040e1f78" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="c61cb266-9148-413b-b3f6-9ea40809b17a" variableName="httpStatus" />
+				<set-payload value='#["No amount specified!"]' doc:name="No amount response" doc:id="2c1ab499-e4aa-4750-b928-20246cd89d5f" />
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="13ad0317-4989-4e12-8c4a-399c657564d5" type="APP:INVALID_AMOUNT" >
+				<logger level="INFO" doc:name="Error processing request" doc:id="4e4bae04-b42a-4b60-aa8c-adb18f33768f" message='#["Error processing request because of invalid amount provided by user!"]' />
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="b9013a5e-e48c-4cb8-86dd-9f5f6869f227" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="e8f168f1-24bd-46e3-9598-cd7287e7c046" variableName="httpStatus" />
+				<set-payload value='#["Invalid amount specified!"]' doc:name="Invalid amount response" doc:id="46d0edf3-9d02-4eda-a425-3ba5941ba630" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

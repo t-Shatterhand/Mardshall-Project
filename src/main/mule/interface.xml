@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+    <apikit:config name="marshallproject-config" api="resource::7afd0b41-6122-4cd8-9e89-891abc939e94:marshallproject:1.0.0:raml:zip:marshallproject.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<flow name="marshallproject-main">
+        <http:listener path="/api/*" config-ref="APIKIT_Listener_Config">
+            <http:response statusCode="#[vars.httpStatus default 200]" reasonPhrase='#[vars.reasonPhrase default "Request successful"]'>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]" reasonPhrase='#[vars.reasonPhrase default "Whoops! Something unexpected happened..."]'>
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="marshallproject-config" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="014be892-ac2b-411b-91f4-8b1ea5455d37" type="APIKIT:BAD_REQUEST">
+				<logger level="INFO" doc:name="Error processing request" doc:id="aaae10c2-18fa-4426-b11d-121c969a84c9" message='#["Error processing request because of invalid currency provided by user!"]'/>
+				<set-variable value='#["Request invalid!"]' doc:name="reasonPhrase" doc:id="6522b9d0-dcf7-4bae-b514-026ef78d5797" variableName="reasonPhrase" />
+				<set-variable value="#[400]" doc:name="httpStatus" doc:id="9fc734ad-b52d-40d8-9ca3-ea24a8a61bec" variableName="httpStatus" />
+				<set-payload value='#["Invalid query string! Check your query parameters!"]' doc:name="Invalid date response" doc:id="58bf2253-4060-44c3-969c-3fb9e36db121" />
+			</on-error-propagate>
+			<on-error-propagate type="APIKIT:NOT_FOUND">
+				<logger level="INFO" doc:name="Error processing request" doc:id="decc33ed-71c2-487c-b40b-12c39617b83f" message='#["Error processing request because of invalid endpoint called by user!"]'/>
+				<set-variable value='#["Not found!"]' doc:name="reasonPhrase" doc:id="5d8618f8-6399-4444-9cbc-2a4aa77487d8" variableName="reasonPhrase" />
+				<set-variable value="#[404]" doc:name="httpStatus" doc:id="341b6b1b-bab5-4f79-ae8d-387c17f26297" variableName="httpStatus" />
+				<set-payload value='#["Endpoint not found! Try /doubleConvert or /history!"]' doc:name="Endpoint not found response" doc:id="1fc5d89a-65b6-47f3-bfd7-af935ca2e866" />
+			</on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+				<logger level="INFO" doc:name="Error processing request" doc:id="b6fc534b-f86a-4124-b962-537fee9335f1" message='#["Error processing request because of invalid method called on endpoint by user!"]'/>
+				<set-variable value='#["Method not allowed!"]' doc:name="reasonPhrase" doc:id="d3f9f9d8-a3a6-4e1e-a7fc-f6247b54f039" variableName="reasonPhrase" />
+				<set-variable value="#[403]" doc:name="httpStatus" doc:id="0a9c5fac-8521-4375-85ed-cb3e45da33e1" variableName="httpStatus" />
+				<set-payload value='#["Method not allowed! Please, use a GET method on /doubleConvert and /history endpoints!"]' doc:name="Method not allowed response" doc:id="9774d0f3-3755-4f0b-889d-cf35e3c0fb9d" />
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <logger level="INFO" doc:name="Error processing request" doc:id="9924ab9a-ed6e-47ea-8295-14f14555e8d0" message='#["Error processing request because of not acceptable request by user!"]'/>
+				<set-variable value='#["Not acceptable!"]' doc:name="reasonPhrase" doc:id="75fc8a04-34f0-41a1-b6b4-8e941ade51e6" variableName="reasonPhrase" />
+				<set-variable value="#[406]" doc:name="httpStatus" doc:id="fe354730-8a71-4208-9fbe-e05b79227196" variableName="httpStatus" />
+				<set-payload value='#["Sorry, not acceptable request!"]' doc:name="Not acceptable response" doc:id="0bdbecab-6403-4d5d-8c9f-4ddba2222e4f" />
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <logger level="INFO" doc:name="Error processing request" doc:id="61019a0a-e9ed-4f66-b98b-3b99bcf790ee" message='#["Error processing request because of invalid media type provided by user!"]'/>
+				<set-variable value='#["Unsupported body media type"]' doc:name="reasonPhrase" doc:id="85190e9c-de95-4fec-9ac3-a72cc32ffdc3" variableName="reasonPhrase" />
+				<set-variable value="#[415]" doc:name="httpStatus" doc:id="62a19a13-956c-49d9-829e-d4c67727d4ff" variableName="httpStatus" />
+				<set-payload value='#["The body is unsupported! Try using GET methods without bodies!"]' doc:name="Unsupported media type response" doc:id="d32585d4-03ae-49c7-9867-e2366daeeb91" />
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <logger level="INFO" doc:name="Error processing request" doc:id="6dbca4df-fcc9-4f3f-a288-193d6d718167" message='#["Error processing request because the requested functionality is not implemented!"]'/>
+				<set-variable value='#["Not implemented yet!"]' doc:name="reasonPhrase" doc:id="bf000ea8-c8c7-4dff-8101-00b3b1aa6932" variableName="reasonPhrase" />
+				<set-variable value="#[503]" doc:name="httpStatus" doc:id="431dc4be-a5e2-4dfe-9f4b-a6ef31bf6967" variableName="httpStatus" />
+				<set-payload value='#["Sorry, this part of application is not yet implemented!"]' doc:name="Not implemented response" doc:id="26e02c80-81f4-475b-aeb7-c7250b460e2c" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="marshallproject-console">
+        <http:listener path="/console/*" config-ref="APIKIT_Listener_Config">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="marshallproject-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\doubleConvert:marshallproject-config">
+		<logger level="INFO" doc:name="Redirecting request to implementation" doc:id="77936adb-0922-4945-9955-4ee2294d6c89" message='#["Redirecting the caught GET /doubleConvert request via APIKit to the flow implementation"]'/>
+		<flow-ref doc:name="getDoubleConvert" doc:id="95d204eb-7042-4b8c-978a-dc5ab2f17918" name="getDoubleConvert"/>
+    </flow>
+    <flow name="get:\history:marshallproject-config">
+        <logger level="INFO" message='#["Redirecting the caught GET /history request via APIKit to the flow implementation"]' doc:name="Redirecting request to implementation"/>
+		<flow-ref doc:name="getHistory" doc:id="de27f192-bd09-460d-a76d-1f15c165c491" name="getHistory"/>
+    </flow>
+</mule>

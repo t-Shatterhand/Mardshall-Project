@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<error-handler name="global_ErrorHandler" doc:id="3bc13daf-319d-4a37-802f-76e5e0a769ef" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="385f3e5a-b529-4ba4-979a-9825abcca163" type="STREAM_MAXIMUM_SIZE_EXCEEDED">
+			<logger level="INFO" doc:name="Error processing request" doc:id="b7e45688-ac2b-43a5-a1a8-6e4d1156fee3" message='#["Error processing request because of stream size exceeded during the program execution"]'/>
+			<set-variable value='#["Internal error"]' doc:name="reasonPhrase" doc:id="74f25e29-81fa-4491-a0c0-b573afca1784" variableName="reasonPhrase" />
+			<set-variable value="#[500]" doc:name="httpStatus" doc:id="6660d637-5190-4d37-b2b3-5b0753c0ceab" variableName="httpStatus" />
+			<set-payload value='#["Sorry, internal error happened. Try repeating your request later"]' doc:name="Server error response" doc:id="3ac084a0-b78f-4ad4-b04d-e324848f7c24" />
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="022f3244-7332-4462-a533-dd4d57a2090b" type="EXPRESSION" >
+			<logger level="INFO" doc:name="Error processing request" doc:id="b71f4b77-36d2-409c-b1af-e4b9a7ddfe4d" message='#["Error processing request because of an invalid expression in the program flow!"]' />
+			<set-variable value='#["Internal error"]' doc:name="reasonPhrase" doc:id="000d6215-a193-4162-be3b-1372a2ef6be4" variableName="reasonPhrase" />
+			<set-variable value="#[500]" doc:name="httpStatus" doc:id="a3c4bfc4-e99d-44be-998c-fc304f8cb9e3" variableName="httpStatus" />
+			<set-payload value='#["Sorry, internal error happened. Try repeating your request later"]' doc:name="Server error response" doc:id="74b47f23-82b5-4737-9e72-12eb3284ad0a" />
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e42061b3-dfb0-4b0d-9279-a6f664d66c0f" type="ANY" >
+			<logger level="INFO" doc:name="Error processing request" doc:id="3fcf6441-e7d5-45ca-9ffc-bbe24ec78aa9" message='#["Error processing request because of an untracked error"]' />
+			<set-variable value='#["Internal error"]' doc:name="reasonPhrase" doc:id="97bab8bc-d80f-48df-810c-ae8372b26ca5" variableName="reasonPhrase" />
+			<set-variable value="#[500]" doc:name="httpStatus" doc:id="b6f52498-26df-4cd3-b543-786076b416e6" variableName="httpStatus" />
+			<set-payload value='#["Sorry, internal error happened. Try repeating your request later"]' doc:name="Server error response" doc:id="8f3a3ee0-c355-4009-862d-e0a1ef046b34" />
+		</on-error-propagate>
+	</error-handler>
+</mule>

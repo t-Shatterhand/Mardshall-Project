@@ -1,0 +1,559 @@
+<!-- [STUDIO:"Copy_of_amount:100.5, currency:null"]<?xml version="1.0" encoding="UTF-8"?> [STUDIO] -->
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<munit:config name="requestsImplementation-test-suite.xml" />
+	<munit:test name="requestValidationTest_valid_nonReverse" doc:id="3b3a4ec0-6427-40f7-ad70-c209974dfd11" description="Test">
+		<munit:execution >
+			<ee:transform doc:name="start:2010-04-08, end:2010-11-23" doc:id="325770b7-531d-440a-b93b-47cb971dc0b2" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		startDate: "2010-04-08",
+		endDate: "2010-11-23"
+	}
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="requestValidation Flow" doc:id="ab6657b2-b3fc-451f-bb64-514cfd4188af" name="requestValidation"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.isReverse == false" doc:id="79e3bc94-0942-468e-8378-1520b28bac93" actual="#[vars.isReverse]" expected="#[false]"/>
+			<munit-tools:assert-equals doc:name="vars.startDate == 2010-04-08" doc:id="1c81d85a-afe4-47db-a06d-49ea75fdc94e" actual="#[vars.startDate]" expected='#["2010-04-08"]'/>
+			<munit-tools:assert-equals doc:name="vars.endDate == 2010.11.23" doc:id="1a4cc6b5-650c-4aae-8ea5-ec717048af91" actual="#[vars.endDate]" expected='#["2010-11-23"]'/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="requestVaidationTest_valid_Reverse" doc:id="25d4de13-7915-41fe-87c5-7380ce7f12e3">
+		<munit:execution >
+			<ee:transform doc:name="start:2010-11-21, end:2010-05-28" doc:id="ce4cf32f-c806-4dff-ae68-0cec429fb9f3" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		startDate: "2010-11-21",
+		endDate: "2010-05-28"
+	}
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="requestValidation Flow" doc:id="b6259ee8-c028-4422-ad7b-d53156c95bf8" name="requestValidation"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.isReverse == true" doc:id="7edb6655-ca85-4f26-a1fa-8bdefac5e825" actual="#[vars.isReverse]" expected="#[true]" />
+			<munit-tools:assert-equals doc:name="vars.startDate == 2010-05-28" doc:id="3ac06d9d-2dce-4f44-bb68-04c5543c336e" actual="#[vars.startDate]" expected='#["2010-05-28"]' />
+			<munit-tools:assert-equals doc:name="vars.endDate == 2010.11.21" doc:id="e5f7bdb0-da43-454a-92c1-761a4303433a" actual="#[vars.endDate]" expected='#["2010-11-21"]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="requestVaidationTest_invalid_noStartDate" doc:id="7fa35efe-6ce8-442f-823a-050713cc2942" expectedErrorType="APP:NO_START_DATE">
+		<munit:execution >
+			<ee:transform doc:name="start:null, end:null" doc:id="511a5a09-5bbf-45bc-9d20-7bfa4f8db577" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+	}
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="requestValidation Flow" doc:id="7e056b54-4a3b-4d52-af8c-91da0adb9309" name="requestValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="ab3e60d2-a990-419c-a37b-476298282914" actual="#[vars.httpStatus]" expected="#[400]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="requestVaidationTest_invalid_invalidStartDate" doc:id="fcc8742e-c921-496f-8224-7d4e30462f00" expectedErrorType="APP:INVALID_START_DATE">
+		<munit:execution >
+			<ee:transform doc:name="start:20-11-21, end:null" doc:id="ec19ba28-162f-4274-8407-ecee65b81c74" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		startDate: "20-11-21"
+	}
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="requestValidation Flow" doc:id="eead0718-bbde-484e-9b3e-39d61113691c" name="requestValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="8764e9ee-72b9-49f6-8628-add55f704626" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="requestVaidationTest_invalid_invalidEndDate" doc:id="b3e730cd-cbf3-4b10-8053-796bb485e7e2" expectedErrorType="APP:INVALID_END_DATE">
+		<munit:execution >
+			<ee:transform doc:name="start:2011-11-21, end:20-04-04" doc:id="7d3cca0f-e2d8-43dd-892b-c905cfddd656" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		startDate: "2011-11-21",
+		endDate: "20-04-04"
+	}
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="requestValidation Flow" doc:id="67cd6fc6-7665-4d87-9d30-8ed6c405e9ba" name="requestValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="4516bde4-727e-464f-b268-e28eba377ab2" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="requestVaidationTest_invalid_futureStartDate" doc:id="372b5306-819c-41e2-8eb7-a8634ba1007e" expectedErrorType="APP:FUTURE_START_DATE">
+		<munit:execution >
+			<ee:transform doc:name="start:2023-11-21, end:2022-04-04" doc:id="e4475430-fd7b-45c2-839e-7dfa92c0924f" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		startDate: "2023-11-21",
+		endDate: "2022-04-04"
+	}
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="requestValidation Flow" doc:id="ce17bca1-74f1-47b8-af3b-eeb8515a7a54" name="requestValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="8b8def65-a91a-408f-94ee-8b7ed40e65da" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="requestVaidationTest_invalid_futureEndDate" doc:id="72e3652f-2f9e-48c5-a7d2-e637d0a4b427" expectedErrorType="APP:FUTURE_END_DATE">
+		<munit:execution >
+			<ee:transform doc:name="start:2021-11-21, end:2023-04-04" doc:id="b5c35923-466c-4e2a-8eae-2aa09dae736d" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		startDate: "2021-11-21",
+		endDate: "2023-04-04"
+	}
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="requestValidation Flow" doc:id="b443e37a-93e4-415e-8152-57f7272e1d24" name="requestValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="f4204073-6626-4a85-847a-92bc604f5d67" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="processRecordsTest" doc:id="63f30713-215a-43cc-a714-c1677f373917" description="Test">
+		<munit:behavior >
+			<file:read doc:name="Read sample png" doc:id="acbeb5a2-0a6a-49d8-bd7b-e5ca607e3a42" config-ref="MUnit_test_config" path="sampleRequest.png" />
+			<munit-tools:mock-when doc:name="Mock HTTP request on quickchart" doc:id="8c008bf5-b29a-4a46-9a2a-ce5094f976dc" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Chart with given config" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="4fd0235f-ea04-4bdc-a834-2cc7cb140608" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Quickchart_Request_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[payload]" mediaType="image/png" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<set-variable value="#[false]" doc:name="isReverse == false" doc:id="e61a6795-97c9-4d4b-a86e-c1a4c89c4eb6" variableName="isReverse"/>
+			<set-variable value='#["2022-08-24"]' doc:name="startDate == 2022-08-24" doc:id="2321968f-8075-42fc-abab-00569879a8fe" variableName="startDate"/>
+			<set-variable value='#["2022-08-27"]' doc:name="endDate == 2022-08-27" doc:id="626c0af8-cb67-4b54-a3ef-3cc6c8c48c7b" variableName="endDate"/>
+			<file:write doc:name="Setup CSV" doc:id="e00bd564-5bfc-4533-bccf-ee5f3db78fe8" config-ref="CSV_File_Config" path="rates.csv">
+				<file:content><![CDATA[#[%dw 2.0
+output application/csv
+---
+[
+	{
+		date: "2022-08-24",
+		USD: 0.027108,
+		EUR: 0.027201,
+		JPY: 3.713718,
+		RUB: 1.620666
+	},
+	{
+		date: "2022-08-25",
+		USD: 0.027118,
+		EUR: 0.028201,
+		JPY: 3.813718,
+		RUB: 1.630666
+	},
+	{
+		date: "2022-08-26",
+		USD: 0.027138,
+		EUR: 0.027901,
+		JPY: 3.743718,
+		RUB: 1.680666
+	},
+	{
+		date: "2022-08-27",
+		USD: 0.029138,
+		EUR: 0.029901,
+		JPY: 3.913718,
+		RUB: 1.980666
+	}
+]]]]></file:content>
+			</file:write>
+			<flow-ref doc:name="processRecords" doc:id="9f73a537-65dd-42d2-96a1-c39933875f38" name="processRecords" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call doc:name="Verify publish to VM call " doc:id="337eb4de-0744-447d-802e-714b91f88940" processor="vm:publish">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="request_result" attributeName="queueName" />
+					<munit-tools:with-attribute whereValue="Publish graph result" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="5b76c0f7-7c80-42cc-af10-1a79461a8148" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="VM_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<vm:consume queueName="request_result" doc:name="Consume graph from VM queue" doc:id="491cf5fd-afb8-478a-bb0f-78af4fdc28cc" config-ref="VM_Config" timeout="500"/>
+			<munit-tools:assert-that doc:name="payload is of type png" doc:id="5fb8c4ed-811b-474c-b68f-a3f7950686d2" is="#[MunitTools::notNullValue()]" expression='#[payload.^class == "image/png"]'/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="requestHistoryTest" doc:id="b36367d9-59da-4aa9-b9a3-bc43127e3378" description="Test">
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "motd": {&#10;        "msg": "If you or your company use this project or like what we doing, please consider backing us so we can continue maintaining and evolving this project.",&#10;        "url": "https://exchangerate.host/#/donate"&#10;    },&#10;    "success": true,&#10;    "historical": true,&#10;    "base": "UAH",&#10;    "date": "2012-03-09",&#10;    "rates": {&#10;        "USD": 0.126597,&#10;        "JPY": 10.326245,&#10;        "BGN": 0.185781,&#10;        "CZK": 2.358097,&#10;        "DKK": 0.708945,&#10;        "GBP": 0.079973,&#10;        "HUF": 27.916269,&#10;        "LTL": 0.32921,&#10;        "LVL": 0.066393,&#10;        "PLN": 0.390587,&#10;        "RON": 0.415106,&#10;        "SEK": 0.847444,&#10;        "CHF": 0.114953,&#10;        "NOK": 0.707086,&#10;        "HRK": 0.717862,&#10;        "RUB": 3.715525,&#10;        "TRY": 0.224604,&#10;        "AUD": 0.118873,&#10;        "BRL": 0.222544,&#10;        "CAD": 0.125329,&#10;        "CNY": 0.798808,&#10;        "HKD": 0.98168,&#10;        "IDR": 1153.538051,&#10;        "ILS": 0.476531,&#10;        "INR": 6.331204,&#10;        "KRW": 141.069998,&#10;        "MXN": 1.604997,&#10;        "MYR": 0.380011,&#10;        "NZD": 0.153519,&#10;        "PHP": 5.378123,&#10;        "SGD": 0.158373,&#10;        "THB": 3.865535,&#10;        "ZAR": 0.945871,&#10;        "EUR": 0.095365,&#10;        "AED": 0.4646,&#10;        "AFN": 6.004196,&#10;        "ALL": 13.107953,&#10;        "ANG": 0.216517,&#10;        "ARS": 0.548283,&#10;        "BAM": 0.185562,&#10;        "BBD": 0.247797,&#10;        "BDT": 10.142476,&#10;        "BHD": 0.047444,&#10;        "BIF": 159.855998,&#10;        "BND": 0.155617,&#10;        "BOB": 0.853538,&#10;        "BSD": 0.125615,&#10;        "BWP": 0.890645,&#10;        "BYR": 1026.988365,&#10;        "BZD": 0.236878,&#10;        "CLP": 60.006676,&#10;        "COP": 218.586697,&#10;        "CRC": 63.39691,&#10;        "CUP": 0.123403,&#10;        "CVE": 10.423422,&#10;        "DJF": 21.777608,&#10;        "DOP": 4.827866,&#10;        "DZD": 9.332443,&#10;        "EGP": 0.761492,&#10;        "ETB": 2.177961,&#10;        "FJD": 0.221286,&#10;        "GHS": 0.213523,&#10;        "GMD": 3.84608,&#10;        "GNF": 888.336792,&#10;        "GTQ": 0.961453,&#10;        "HNL": 2.359241,&#10;        "HTG": 5.082205,&#10;        "IQD": 144.132176,&#10;        "IRR": 1528.170933,&#10;        "ISK": 15.738127,&#10;        "JMD": 10.768167,&#10;        "JOD": 0.089043,&#10;        "KES": 10.283235,&#10;        "KHR": 496.223527,&#10;        "KWD": 0.035104,&#10;        "KYD": 0.102279,&#10;        "KZT": 18.406447,&#10;        "LAK": 984.836925,&#10;        "LBP": 189.776845,&#10;        "LKR": 15.295632,&#10;        "LSL": 0.926702,&#10;        "LYD": 0.155207,&#10;        "MAD": 1.036239,&#10;        "MDL": 1.464496,&#10;        "MGA": 268.886134,&#10;        "MKD": 5.835781,&#10;        "MMK": 0.796414,&#10;        "MOP": 0.990616,&#10;        "MRO": 36.522983,&#10;        "MUR": 3.544726,&#10;        "MVR": 1.932195,&#10;        "MWK": 20.714095,&#10;        "NAD": 0.925234,&#10;        "NGN": 19.590883,&#10;        "NIO": 2.879935,&#10;        "NPR": 9.99733,&#10;        "OMR": 0.048579,&#10;        "PAB": 0.123879,&#10;        "PEN": 0.330116,&#10;        "PGK": 0.24857,&#10;        "PKR": 11.494373,&#10;        "PYG": 517.985895,&#10;        "QAR": 0.460404,&#10;        "RSD": 10.546443,&#10;        "RWF": 75.160214,&#10;        "SAR": 0.47429,&#10;        "SCR": 1.683197,&#10;        "SDG": 0.333282,&#10;        "SOS": 200.762922,&#10;        "STD": 2324.947587,&#10;        "SVC": 1.081823,&#10;        "SYP": 7.1214,&#10;        "SZL": 0.929687,&#10;        "TND": 0.189615,&#10;        "TTD": 0.793906,&#10;        "TWD": 3.631995,&#10;        "TZS": 198.307267,&#10;        "UAH": 1,&#10;        "UGX": 305.731442,&#10;        "UYU": 2.411596,&#10;        "UZS": 227.492848,&#10;        "VEF": 0.543048,&#10;        "VND": 2592.981118,&#10;        "XAF": 61.315754,&#10;        "XCD": 0.368625,&#10;        "XOF": 61.315754,&#10;        "XPF": 11.144383&#10;    }&#10;}]' doc:name="testPayload" doc:id="f269bf31-a36f-41e1-9bdc-ae45b9fd5466" variableName="testPayload"/>
+			<munit-tools:mock-when doc:name="Mock HTTP request on exchangerate" doc:id="afccd01c-57c2-4599-8ad8-801bb2d43864" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Ask for rates at date" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="1f614c02-5350-4a92-840c-c793783f6e92" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="API_Exchangerate_Request_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.testPayload]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<file:read doc:name="Read sample png" doc:id="be5a6452-bca0-4848-ab40-9029fcc698cf" config-ref="MUnit_test_config" path="sampleRequest.png"/>
+			<munit-tools:mock-when doc:name="Mock HTTP request on quickchart" doc:id="07dd948b-8336-4ed1-b187-78c6f3ced0ca" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Chart with given config" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="4fd0235f-ea04-4bdc-a834-2cc7cb140608" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Quickchart_Request_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[payload]" mediaType="image/png" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<set-variable value="#[false]" doc:name="isReverse == false" doc:id="792877e6-4c55-451a-9023-38b486d85abc" variableName="isReverse"/>
+			<set-variable value='#["2022-08-24"]' doc:name="startDate == 2022-08-24" doc:id="a37ff456-f931-42b6-8802-e7b3bace614d" variableName="startDate"/>
+			<set-variable value='#["2022-08-27"]' doc:name="endDate == 2022-08-27" doc:id="95c3e462-db29-41b6-a5fb-963ea19b322a" variableName="endDate"/>
+			<flow-ref doc:name="requestHistory" doc:id="33a653cb-7957-4377-a861-70eb528d0b34" name="requestHistory"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify calling processRecords" doc:id="c1a561c7-61b0-493c-8058-fb264417f3b6" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="processRecords Flow" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="d13eff2f-e0ae-4e93-ae38-b07b4a30e795" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="processRecords" attributeName="name" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:assert-that doc:name="payload is of type png" doc:id="8b9c16a5-769c-4490-bafc-4b52252ce82a" is="#[MunitTools::notNullValue()]" expression='#[payload.^class == "image/png"]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="getHistoryTest" doc:id="80643d57-de34-4317-a09a-48630b9f0b10" description="Test">
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "motd": {&#10;        "msg": "If you or your company use this project or like what we doing, please consider backing us so we can continue maintaining and evolving this project.",&#10;        "url": "https://exchangerate.host/#/donate"&#10;    },&#10;    "success": true,&#10;    "historical": true,&#10;    "base": "UAH",&#10;    "date": "2012-03-09",&#10;    "rates": {&#10;        "USD": 0.126597,&#10;        "JPY": 10.326245,&#10;        "BGN": 0.185781,&#10;        "CZK": 2.358097,&#10;        "DKK": 0.708945,&#10;        "GBP": 0.079973,&#10;        "HUF": 27.916269,&#10;        "LTL": 0.32921,&#10;        "LVL": 0.066393,&#10;        "PLN": 0.390587,&#10;        "RON": 0.415106,&#10;        "SEK": 0.847444,&#10;        "CHF": 0.114953,&#10;        "NOK": 0.707086,&#10;        "HRK": 0.717862,&#10;        "RUB": 3.715525,&#10;        "TRY": 0.224604,&#10;        "AUD": 0.118873,&#10;        "BRL": 0.222544,&#10;        "CAD": 0.125329,&#10;        "CNY": 0.798808,&#10;        "HKD": 0.98168,&#10;        "IDR": 1153.538051,&#10;        "ILS": 0.476531,&#10;        "INR": 6.331204,&#10;        "KRW": 141.069998,&#10;        "MXN": 1.604997,&#10;        "MYR": 0.380011,&#10;        "NZD": 0.153519,&#10;        "PHP": 5.378123,&#10;        "SGD": 0.158373,&#10;        "THB": 3.865535,&#10;        "ZAR": 0.945871,&#10;        "EUR": 0.095365,&#10;        "AED": 0.4646,&#10;        "AFN": 6.004196,&#10;        "ALL": 13.107953,&#10;        "ANG": 0.216517,&#10;        "ARS": 0.548283,&#10;        "BAM": 0.185562,&#10;        "BBD": 0.247797,&#10;        "BDT": 10.142476,&#10;        "BHD": 0.047444,&#10;        "BIF": 159.855998,&#10;        "BND": 0.155617,&#10;        "BOB": 0.853538,&#10;        "BSD": 0.125615,&#10;        "BWP": 0.890645,&#10;        "BYR": 1026.988365,&#10;        "BZD": 0.236878,&#10;        "CLP": 60.006676,&#10;        "COP": 218.586697,&#10;        "CRC": 63.39691,&#10;        "CUP": 0.123403,&#10;        "CVE": 10.423422,&#10;        "DJF": 21.777608,&#10;        "DOP": 4.827866,&#10;        "DZD": 9.332443,&#10;        "EGP": 0.761492,&#10;        "ETB": 2.177961,&#10;        "FJD": 0.221286,&#10;        "GHS": 0.213523,&#10;        "GMD": 3.84608,&#10;        "GNF": 888.336792,&#10;        "GTQ": 0.961453,&#10;        "HNL": 2.359241,&#10;        "HTG": 5.082205,&#10;        "IQD": 144.132176,&#10;        "IRR": 1528.170933,&#10;        "ISK": 15.738127,&#10;        "JMD": 10.768167,&#10;        "JOD": 0.089043,&#10;        "KES": 10.283235,&#10;        "KHR": 496.223527,&#10;        "KWD": 0.035104,&#10;        "KYD": 0.102279,&#10;        "KZT": 18.406447,&#10;        "LAK": 984.836925,&#10;        "LBP": 189.776845,&#10;        "LKR": 15.295632,&#10;        "LSL": 0.926702,&#10;        "LYD": 0.155207,&#10;        "MAD": 1.036239,&#10;        "MDL": 1.464496,&#10;        "MGA": 268.886134,&#10;        "MKD": 5.835781,&#10;        "MMK": 0.796414,&#10;        "MOP": 0.990616,&#10;        "MRO": 36.522983,&#10;        "MUR": 3.544726,&#10;        "MVR": 1.932195,&#10;        "MWK": 20.714095,&#10;        "NAD": 0.925234,&#10;        "NGN": 19.590883,&#10;        "NIO": 2.879935,&#10;        "NPR": 9.99733,&#10;        "OMR": 0.048579,&#10;        "PAB": 0.123879,&#10;        "PEN": 0.330116,&#10;        "PGK": 0.24857,&#10;        "PKR": 11.494373,&#10;        "PYG": 517.985895,&#10;        "QAR": 0.460404,&#10;        "RSD": 10.546443,&#10;        "RWF": 75.160214,&#10;        "SAR": 0.47429,&#10;        "SCR": 1.683197,&#10;        "SDG": 0.333282,&#10;        "SOS": 200.762922,&#10;        "STD": 2324.947587,&#10;        "SVC": 1.081823,&#10;        "SYP": 7.1214,&#10;        "SZL": 0.929687,&#10;        "TND": 0.189615,&#10;        "TTD": 0.793906,&#10;        "TWD": 3.631995,&#10;        "TZS": 198.307267,&#10;        "UAH": 1,&#10;        "UGX": 305.731442,&#10;        "UYU": 2.411596,&#10;        "UZS": 227.492848,&#10;        "VEF": 0.543048,&#10;        "VND": 2592.981118,&#10;        "XAF": 61.315754,&#10;        "XCD": 0.368625,&#10;        "XOF": 61.315754,&#10;        "XPF": 11.144383&#10;    }&#10;}]' doc:name="testPayload" doc:id="43598667-d28b-45c1-b030-1215b25cb3c4" variableName="testPayload" />
+			<munit-tools:mock-when doc:name="Mock HTTP request on exchangerate" doc:id="0a450b04-e5b2-4d55-a83b-dc935c85deb8" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Ask for rates at date" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="1f614c02-5350-4a92-840c-c793783f6e92" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="API_Exchangerate_Request_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.testPayload]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<file:read doc:name="Read sample png" doc:id="eb6d6dec-b3b0-4f10-9eb4-d36384e7ee4c" config-ref="MUnit_test_config" path="sampleRequest.png" />
+			<munit-tools:mock-when doc:name="Mock HTTP request on quickchart" doc:id="a78ec03b-8a9b-4fce-9e94-ddc8e049ef76" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Chart with given config" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="4fd0235f-ea04-4bdc-a834-2cc7cb140608" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Quickchart_Request_Config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[payload]" mediaType="image/png" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="start:2010-04-08, end:2010-04-12" doc:id="dabae204-5ea1-404a-b1ee-23772da1f775">
+				<ee:message>
+					<ee:set-attributes><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		startDate: "2010-04-08",
+		endDate: "2010-04-12"
+	},
+	queryString: "! testing query string - getHistoryTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="getHistory" doc:id="26c2cbdb-3257-4a25-8566-d20190efec92" name="getHistory"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify requestHistory call" doc:id="4daac5f5-dc27-4614-b9bf-7c37f3083d2d" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="requestHistory Flow" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="08f1af1d-4459-417d-8f03-10b7ab1ffd39" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="requestHistory" attributeName="name" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify requestValidation call" doc:id="2538d50c-4a4f-4162-8501-042a4dd092e5" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="requestValidation Flow" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="fe0d1932-250e-44b0-881b-ce79af25dccc" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="requestValidation" attributeName="name" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:assert-that doc:name="payload is of type png" doc:id="9b046311-33e2-408f-80f0-5978ea935a0b" is="#[MunitTools::notNullValue()]" expression='#[payload.^class == "image/png"]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="getDoubleConvertTest-usd" doc:id="26ed0956-cf9d-40c4-87cf-846c7d659c82" description="Test">
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;[&#10;	{"ccy":"USD","base_ccy":"UAH","buy":"36.56860","sale":"37.31343"},&#10;	{"ccy":"EUR","base_ccy":"UAH","buy":"36.64910","sale":"37.73585"},&#10;	{"ccy":"RUR","base_ccy":"UAH","buy":"0.32000","sale":"0.35001"},&#10;	{"ccy":"BTC","base_ccy":"USD","buy":"19992.9174","sale":"22097.4350"}&#10;]]' doc:name="privatbankResponse" doc:id="98031f46-638d-40dc-8de6-7ed2803cfb30" variableName="privatbankResponse"/>
+			<munit-tools:mock-when doc:name="Mock privatbank API response" doc:id="050a0c10-86ec-4291-bcd1-54ebcdb72a38" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+					<munit-tools:with-attribute whereValue="GET Privatbank exchangerates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="25662ea7-a339-48a5-bf50-6fa9f0d56e15" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.privatbankResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="amount:100.5, currency:USD" doc:id="c9afece4-4d98-445b-b9ef-1ad8c343ae2e">
+				<ee:message>
+					<ee:set-attributes><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		amount: 100.5,
+		currency: "USD"
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="getDoubleConvert" doc:id="b6c63ce4-4cf9-4681-87c6-dc7a522832a7" name="getDoubleConvert"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals doc:name="Request currency == USD" doc:id="a8b4d063-60f3-4823-aaf4-5b6f723858e5" actual="#[payload.request.currency]" expected='#["USD"]'/>
+			<munit-tools:assert-equals doc:name="Request amount == 100.5" doc:id="c8cf6ee2-8d40-4d4d-87f0-0aee2cac0bdf" actual="#[payload.request.amount]" expected="#[100.5]"/>
+			<munit-tools:assert-equals doc:name="Response is valid" doc:id="1d877e6b-5661-4770-ac48-52aae41f8e44" actual="#[payload.response.isRequestValid]" expected="#[true]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="doubleConvertValidationTest-valid" doc:id="58fb940a-4c66-4636-8731-6fc61ead41fb" description="Test">
+		<munit:execution >
+			<ee:transform doc:name="amount:100.5, currency:USD" doc:id="e3f15860-6867-4bef-8b46-2afb67c07839">
+				<ee:message>
+					<ee:set-attributes><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		amount: 100.5,
+		currency: "USD"
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="doubleConvertValidation" doc:id="8db8a970-1be9-4146-8568-464bb11b1629" name="doubleConvertValidation"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals doc:name="vars.amount == 100.5" doc:id="c25f6a1b-7af0-4f94-982b-dc777150c506" actual="#[vars.amount]" expected="#[100.5]"/>
+			<munit-tools:assert-equals doc:name="vars.currency == USD" doc:id="ef39e9cb-734e-45b7-9efd-71e5acc1ddfc" actual="#[vars.currency]" expected='#["USD"]'/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="doubleConvertValidationTest-invalid-noCurrency" doc:id="54081ddd-1967-4f7d-be95-a98437b9111c" description="Test" expectedErrorType="APP:NO_CURRENCY">
+		<munit:execution >
+			<ee:transform doc:name="amount:100.5, currency:null" doc:id="f1183516-8070-4f01-a926-95964b0b7422" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		amount: 100.5
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="doubleConvertValidation" doc:id="16febccd-ac94-4c53-b1d6-6a65821b55db" name="doubleConvertValidation" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="ac8e083b-d483-472d-9867-529bbceea4c3" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="doubleConvertValidationTest-invalid-invalidCurrency" doc:id="4f6f28a7-9dce-4094-b315-5f63e38b6719" description="Test" expectedErrorType="APP:INVALID_CURRENCY" >
+		<munit:execution >
+			<ee:transform doc:name="amount:100.5, currency:USF" doc:id="1395a89a-cfe5-498a-963e-7c3833ca188c">
+				<ee:message>
+					<ee:set-attributes><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		amount: 100.5,
+		currency: "USF"
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="doubleConvertValidation" doc:id="b5295fab-6452-40b8-b65b-ebcad8dcfce9" name="doubleConvertValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="f532f4fd-7df0-4e3b-b89c-9a319e78ff43" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="doubleConvertValidationTest-invalid-noAmount" doc:id="f2d48cc1-a7e4-4ea3-acae-9a6a46323fce" description="Test" expectedErrorType="APP:NO_AMOUNT" >
+		<munit:execution >
+			<ee:transform doc:name="amount:null, currency:USD" doc:id="e77dad1b-794b-4291-bcc4-e99c67199c83" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		currency: "USD"
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="doubleConvertValidation" doc:id="da4c1a7f-b2ba-48f2-a504-0d7e857f4dc1" name="doubleConvertValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="5101669c-bd38-4b22-9b5c-4aa485b32273" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="Copy_of_doubleConvertValidationTest-invalid-invalidAmount" doc:id="8778b868-8867-49c9-938e-f768f9fb9e7c" description="Test" expectedErrorType="APP:INVALID_AMOUNT" >
+		<munit:execution >
+			<ee:transform doc:name="amount:10.8.5, currency:USD" doc:id="08e7a80b-857c-4dc4-854d-0aa255157298" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		amount: "10.8.5",
+		currency: "USD"
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="doubleConvertValidation" doc:id="2e59b2d9-7678-48b0-b67e-ea36b19d6968" name="doubleConvertValidation" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="vars.httpStatus == 400" doc:id="18797877-2cc8-48a6-a5be-ecc3305de16f" actual="#[vars.httpStatus]" expected="#[400]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="getDoubleConvertTest-eur" doc:id="e663133c-5df1-4dec-bf2c-f44c89055cba" description="Test" >
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;[&#10;	{"ccy":"USD","base_ccy":"UAH","buy":"36.56860","sale":"37.31343"},&#10;	{"ccy":"EUR","base_ccy":"UAH","buy":"36.64910","sale":"37.73585"},&#10;	{"ccy":"RUR","base_ccy":"UAH","buy":"0.32000","sale":"0.35001"},&#10;	{"ccy":"BTC","base_ccy":"USD","buy":"19992.9174","sale":"22097.4350"}&#10;]]' doc:name="privatbankResponse" doc:id="2f5613ad-1e52-40d7-94c3-fa6dcfdeedcb" variableName="privatbankResponse" />
+			<munit-tools:mock-when doc:name="Mock privatbank API response" doc:id="bda21a21-f96f-4ff6-82c2-9983831f7367" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+					<munit-tools:with-attribute whereValue="GET Privatbank exchangerates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="25662ea7-a339-48a5-bf50-6fa9f0d56e15" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.privatbankResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="amount:99, currency:EUR" doc:id="4699e262-1745-4ee6-841d-a757d677d1e5" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		amount: 99,
+		currency: "EUR"
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="getDoubleConvert" doc:id="ea519830-1f42-4ab7-b3df-6a2ea6a0575e" name="getDoubleConvert" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Request currency == EUR" doc:id="e1135c3e-fa0f-4d25-97bc-0ec224ac3af5" actual="#[payload.request.currency]" expected='#["EUR"]' />
+			<munit-tools:assert-equals doc:name="Request amount == 99" doc:id="badd39ce-b2d8-46dd-842c-dbd1bfa0ba44" actual="#[payload.request.amount]" expected="#[99]" />
+			<munit-tools:assert-equals doc:name="Response is valid" doc:id="cd113476-3cba-41b1-a3b1-ce3613127841" actual="#[payload.response.isRequestValid]" expected="#[true]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="Copy_of_getDoubleConvertTest-eur" doc:id="b1124eaa-2ec4-4eb0-bffa-0b70d543b854" description="Test" >
+		<munit:behavior >
+			<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;[&#10;	{"ccy":"USD","base_ccy":"UAH","buy":"36.56860","sale":"37.31343"},&#10;	{"ccy":"EUR","base_ccy":"UAH","buy":"36.64910","sale":"37.73585"},&#10;	{"ccy":"RUR","base_ccy":"UAH","buy":"0.32000","sale":"0.35001"},&#10;	{"ccy":"BTC","base_ccy":"USD","buy":"19992.9174","sale":"22097.4350"}&#10;]]' doc:name="privatbankResponse" doc:id="b8b4fb3c-4c10-4b34-bf0d-6f99a9c6afdb" variableName="privatbankResponse" />
+			<munit-tools:mock-when doc:name="Mock privatbank API response" doc:id="f55356e6-719a-4e03-ba81-77d7d4a43008" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+					<munit-tools:with-attribute whereValue="GET Privatbank exchangerates" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="25662ea7-a339-48a5-bf50-6fa9f0d56e15" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[vars.privatbankResponse]" mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<ee:transform doc:name="amount:399.33, currency:RUB" doc:id="7cadae05-b30f-4f1c-aadc-99ffc4a2ee8c" >
+				<ee:message >
+					<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	queryParams: {
+		amount: 399.33,
+		currency: "RUB"
+	},
+	queryString: "! testing query string - getDoubleConvertTest !"
+}]]></ee:set-attributes>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="getDoubleConvert" doc:id="0e085e83-507b-46f2-a3d0-6bbb4f06fb25" name="getDoubleConvert" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Request currency == RUB" doc:id="bf0ba6a3-7197-4bc9-864e-bde0e5171002" actual="#[payload.request.currency]" expected='#["RUB"]' />
+			<munit-tools:assert-equals doc:name="Request amount == 399.33" doc:id="c513c2c2-7cb7-450a-8ad0-ab3bc23f1a7d" actual="#[payload.request.amount]" expected="#[399.33]" />
+			<munit-tools:assert-equals doc:name="Response is valid" doc:id="fb58c696-2360-4f1b-88a6-c2ef10515192" actual="#[payload.response.isRequestValid]" expected="#[true]" />
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

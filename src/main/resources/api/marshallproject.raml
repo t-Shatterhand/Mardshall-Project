@@ -1,0 +1,50 @@
+#%RAML 1.0
+title: MarshallProject
+
+/history:
+  get:
+    queryParameters:
+      startDate:
+        required: true
+        type: date-only
+        description: "The starting date to build graph from"
+        example: 2010-05-28
+      endDate:
+        required: false
+        type: date-only
+        description: "The ending date to build graph to"
+        example: 2015-11-18
+      currencies:
+        required: false
+        type: string[]
+        description: "Currencies to include in a resulting graph"
+        example: ["USD", "JPY", "EUR"]
+    responses:
+      200:
+        body:
+          image/png:
+            description: "The currency exchange rate graph build with the corresponding parameters"
+            
+/doubleConvert:
+  get:
+    queryParameters:
+      currency:
+        required: true
+        type: string
+        description: "The currency code to perform double conversion to"
+        example: "USD"
+      amount:
+        required: true
+        type: number
+        description: "Amount of UAH to calculate losses when double conversion is performed"
+        example: 105.5
+    responses:
+      200:
+        body:
+          application/json:
+            description: "JSON object with input parameters duplicated from request, and the calculated loss of UAH amount"
+            example: !include /examples/doubleConvertResponseExample.raml
+
+
+                
+      

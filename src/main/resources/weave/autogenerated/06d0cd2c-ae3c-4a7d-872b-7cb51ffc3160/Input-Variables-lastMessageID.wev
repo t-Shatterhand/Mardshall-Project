@@ -1,0 +1,5 @@
+%dw 2.0
+
+type auto_06d0cd2c_ae3c_4a7d_872b_7cb51ffc3160_Input_Variables_lastMessageID = {|  |} {"typeAlias": "Serializable",
+"typeId": "java.io.Serializable"}
+

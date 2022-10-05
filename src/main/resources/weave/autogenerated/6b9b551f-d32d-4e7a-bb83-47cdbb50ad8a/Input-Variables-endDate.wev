@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_6b9b551f_d32d_4e7a_bb83_47cdbb50ad8a_Input_Variables_endDate = String | Null
+

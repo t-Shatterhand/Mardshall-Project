@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:telegram="http://www.mulesoft.org/schema/mule/telegram" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/telegram http://www.mulesoft.org/schema/mule/telegram/current/mule-telegram.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<file:config name="CSV_File_Config" > 
+	<file:connection workingDir="${secure::file.directory}" /> 
+	</file:config> 
+	<http:request-config name="API_Exchangerate_Request_Config" doc:name="HTTP Request configuration" doc:id="14563858-4c9e-44c2-b314-4312e4e9cf48" >
+		<http:request-connection protocol="HTTPS" host="${secure::exchange.host}" />
+	</http:request-config>
+	<http:request-config name="Quickchart_Request_Config" doc:name="HTTP Request configuration" doc:id="6f3e4189-33ac-4a8d-a127-4924db767e32">
+		<http:request-connection protocol="HTTPS" host="${secure::chart.host}" />
+	</http:request-config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="ac084c7c-0cd2-4c82-93f1-cbb93250ab0a" >
+		<vm:queues >
+			<vm:queue queueName="request_result" />
+		</vm:queues>
+	</vm:config>
+	<telegram:config name="Telegram_Connector_Config" doc:name="Telegram Connector Config" doc:id="e05f8578-46d6-4661-9922-26400ede3238" >
+		<telegram:connection-provider-connection secureToken="${secure::telegram.api_key}" baseUri="${secure::telegram.host}"/>
+	</telegram:config>
+	<file:config name="MUnit_test_config" doc:name="File Config" doc:id="1132dd2b-9831-453e-a1c4-a77608d4ca62" >
+		<file:connection workingDir="${secure::test.directory}" />
+	</file:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="d5f49977-015c-4cdc-ba70-bb37664e503b" file="secure_config.yaml" key="slavazsu" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<http:listener-config name="APIKIT_Listener_Config" doc:name="HTTP Listener config" doc:id="e52dbc9d-7eef-46c2-88c6-849a008355fd">
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="Telegram_Request_Config" doc:name="HTTP Request configuration" doc:id="265cd4dd-c834-47e3-a4bb-a808fb9f54a9" basePath="${secure::telegram.api_key2}" >
+		<http:request-connection host="${secure::telegram.host2}" protocol="HTTPS"/>
+	</http:request-config>
+</mule>
